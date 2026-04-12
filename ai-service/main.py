@@ -9,7 +9,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from langchain_groq import ChatGroq
 from langchain.prompts import ChatPromptTemplate
-from langchain.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
 load_dotenv()
