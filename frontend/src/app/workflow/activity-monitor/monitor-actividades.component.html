@@ -1,0 +1,48 @@
+<div class="monitor-container">
+
+  <div class="monitor-header">
+    <div>
+      <h1>Mi Monitor de Actividades</h1>
+      <p>Actividades asignadas a tu departamento — se actualiza en tiempo real</p>
+    </div>
+    <span class="badge-ws">
+      <mat-icon class="ws-icon">wifi</mat-icon> En vivo
+    </span>
+  </div>
+
+  <div *ngIf="cargando" class="cargando">
+    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+  </div>
+
+  <div *ngIf="!cargando && tramites.length === 0" class="vacio">
+    <mat-icon>inbox</mat-icon>
+    <p>No tienes actividades asignadas por el momento.</p>
+  </div>
+
+  <div class="tramites-grid" *ngIf="!cargando && tramites.length > 0">
+    <mat-card class="tramite-card" *ngFor="let t of tramites">
+      <mat-card-header>
+        <mat-card-title>{{ t.nombrePolitica }}</mat-card-title>
+        <mat-card-subtitle>Iniciado: {{ t.iniciadoEn | date:'dd/MM/yyyy HH:mm' }}</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="pasos-lista">
+          <div class="paso-item" *ngFor="let paso of t.pasos">
+            <mat-icon [color]="colorEstadoPaso(paso.estado)" class="paso-icono">
+              {{ icono(paso.estado) }}
+            </mat-icon>
+            <div class="paso-info">
+              <span class="paso-nombre">{{ paso.etiquetaNodo }}</span>
+              <span class="paso-carril">{{ paso.carrilNombre }}</span>
+            </div>
+            <mat-chip [color]="colorEstadoPaso(paso.estado)" highlighted class="chip-estado">
+              {{ paso.estado }}
+            </mat-chip>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+</div>

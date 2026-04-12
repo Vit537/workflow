@@ -348,6 +348,35 @@
   margin-right: 8px;
 }
 
+// CU-10: barra de presencia colaborativa
+.presencia-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 16px;
+  background: #e8f5e9;
+  border-bottom: 1px solid #c8e6c9;
+  flex-shrink: 0;
+
+  .presencia-icono {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #2e7d32;
+  }
+
+  .presencia-label {
+    font-size: 13px;
+    color: #2e7d32;
+    font-weight: 500;
+  }
+
+  .chip-usuario {
+    font-size: 12px;
+    height: 22px;
+  }
+}
+
 // CU-08: Panel IA desplegable
 .panel-ia {
   background: #f5f5f5;
@@ -387,7 +416,9 @@
 
 .ia-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 8px;
   margin-top: 4px;
 
@@ -396,4 +427,25 @@
     color: #555;
     max-width: 260px;
   }
+}
+
+.grabando-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #d32f2f;
+  font-size: 13px;
+  font-weight: 500;
+
+  .pulso {
+    animation: pulso 1s ease-in-out infinite;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@keyframes pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
 }

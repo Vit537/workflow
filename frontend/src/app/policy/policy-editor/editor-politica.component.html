@@ -38,6 +38,17 @@
     </button>
   </mat-toolbar>
 
+  <!-- CU-10: indicador de usuarios presentes -->
+  <div class="presencia-bar" *ngIf="usuariosPresentes.length > 0">
+    <mat-icon class="presencia-icono">group</mat-icon>
+    <span class="presencia-label">Editando ahora:</span>
+    <mat-chip-set>
+      <mat-chip *ngFor="let u of usuariosPresentes" class="chip-usuario" highlighted color="primary">
+        {{ u.nombre }}
+      </mat-chip>
+    </mat-chip-set>
+  </div>
+
   <!-- CU-08: Panel IA (desplegable inferior) -->
   <div class="panel-ia" [class.panel-ia-visible]="panelIaAbierto">
     <div class="panel-ia-header">
@@ -52,6 +63,19 @@
           placeholder="Ej: Proceso de aprobación de solicitudes de crédito con validación de documentos, revisión del comité y notificación al cliente."></textarea>
       </mat-form-field>
       <div class="ia-actions">
+        <!-- CU-09: Voz -->
+        <button mat-icon-button
+          [color]="grabandoVoz ? 'warn' : 'primary'"
+          (click)="grabandoVoz ? detenerGrabacionVoz() : iniciarGrabacionVoz()"
+          [matTooltip]="grabandoVoz ? 'Detener grabación' : 'Dictar por voz (Chrome/Edge)'"
+          [disabled]="generandoIA">
+          <mat-icon>{{ grabandoVoz ? 'mic_off' : 'mic' }}</mat-icon>
+        </button>
+        <span *ngIf="grabandoVoz" class="grabando-indicator">
+          <mat-icon class="pulso">radio_button_checked</mat-icon> Escuchando...
+        </span>
+
+        <!-- CU-08: Texto -->
         <button mat-raised-button color="primary" (click)="generarDiagramaConIA()"
           [disabled]="generandoIA || !promptIA.trim()">
           <mat-spinner *ngIf="generandoIA" diameter="18"></mat-spinner>

@@ -1,0 +1,114 @@
+.monitor-container {
+  padding: 24px;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.monitor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+
+  h1 {
+    margin: 0 0 4px;
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  p {
+    margin: 0;
+    color: rgba(0, 0, 0, 0.54);
+    font-size: 14px;
+  }
+}
+
+.badge-ws {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #2e7d32;
+  font-weight: 500;
+  background: #e8f5e9;
+  padding: 4px 12px;
+  border-radius: 20px;
+
+  .ws-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+    animation: parpadeo 2s linear infinite;
+  }
+}
+
+@keyframes parpadeo {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.cargando {
+  margin: 16px 0;
+}
+
+.vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 60px 0;
+  color: rgba(0, 0, 0, 0.38);
+
+  mat-icon {
+    font-size: 64px;
+    width: 64px;
+    height: 64px;
+  }
+}
+
+.tramites-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 16px;
+}
+
+.tramite-card {
+  border-radius: 8px;
+}
+
+.pasos-lista {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.paso-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  .paso-icono {
+    flex-shrink: 0;
+  }
+
+  .paso-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+
+    .paso-nombre {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .paso-carril {
+      font-size: 12px;
+      color: rgba(0, 0, 0, 0.54);
+    }
+  }
+
+  .chip-estado {
+    font-size: 11px;
+    height: 22px;
+  }
+}

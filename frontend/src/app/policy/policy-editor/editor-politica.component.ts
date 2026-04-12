@@ -26,6 +26,9 @@ import {
   SolicitudActualizarDiagrama,
 } from '../../shared/services/politica.service';
 import { IaService, DiagramaIA, NodoIA, ConexionIA } from '../../shared/services/ia.service';
+import { WebsocketService } from '../../shared/services/websocket.service';
+import { AuthService } from '../../shared/services/auth.service';
+import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-editor-politica',
@@ -53,6 +56,15 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   generandoIA = false;
   resultadoIA: DiagramaIA | null = null;
   descripcionIA = '';
+
+  // CU-09: voz
+  grabandoVoz = false;
+  private reconocimientoVoz: any = null;
+
+  // CU-10: edición colaborativa
+  usuariosPresentes: { correo: string; nombre: string }[] = [];
+  private subColaborativo?: Subscription;
+  private subPresencia?: Subscription;
 
   // Panel: propiedades del nodo (CU-05 y CU-06)
   nodoSeleccionado: Nodo | null = null;
@@ -113,7 +125,9 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
     private politicaService: PoliticaService,
     private iaService: IaService,
     private snackBar: MatSnackBar,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private wsService: WebsocketService,
+    private authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -145,6 +159,7 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
       return;
     }
 
+    this.iniciarColaboracion(id);
     this.politicaService.obtenerPolitica(id).subscribe({
       next: (p) => {
         this.politica = p;
@@ -164,6 +179,7 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
     if (this.grafo) {
       this.grafo.destroy();
     }
+    this.detenerColaboracion();
   }
 
   // ── Grafo ──────────────────────────────────────────────────────────────
@@ -489,6 +505,7 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
         this.politica = p;
         this.guardando = false;
         this.snackBar.open('Diagrama guardado', 'Cerrar', { duration: 2000 });
+        this.publicarCambioColaborativo();
       },
       error: () => {
         this.guardando = false;
@@ -558,8 +575,8 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
         id: n.id,
         etiqueta: n.etiqueta,
         tipo: n.tipo as TipoNodo,
-        tipoFlujo: 'SECUENCIAL' as TipoFlujo,
-        condiciones: [],
+        tipoFlujo: (n.tipoFlujo as TipoFlujo) ?? 'LINEAL',
+        condiciones: (n as any).condiciones ?? [],
         posX: n.posX,
         posY: n.posY,
         ancho: n.ancho,
@@ -571,7 +588,7 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
 
     // Reconstruir conexiones
     diagrama.conexiones.forEach((cx: ConexionIA) => {
-      this.politica!.conexiones.push({ id: cx.id, nodoOrigenId: cx.origenId, nodoDestinoId: cx.destinoId, etiqueta: cx.etiqueta ?? '' });
+      this.politica!.conexiones.push({ id: cx.id, nodoOrigenId: cx.nodoOrigenId, nodoDestinoId: cx.nodoDestinoId, etiqueta: cx.etiqueta ?? '' });
     });
 
     // Re-renderizar el grafo
@@ -581,6 +598,128 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
 
   volverALista(): void {
     this.router.navigate(['/policy']);
+  }
+
+  // ── CU-10: Colaboración en tiempo real ─────────────────────────────────
+
+  private iniciarColaboracion(politicaId: string): void {
+    const usuario = this.authService.obtenerUsuarioActual();
+    if (!usuario) return;
+
+    this.wsService.conectar();
+
+    this.subColaborativo = this.wsService
+      .suscribir<any>(`/topic/politicas/${politicaId}`)
+      .subscribe((mensaje) => {
+        if (mensaje.autorCorreo === usuario.correo) return; // ignorar propios
+        if (mensaje.payload) {
+          this.aplicarCambioRemoto(mensaje.payload);
+        }
+      });
+
+    this.subPresencia = this.wsService
+      .suscribir<any>(`/topic/politicas/${politicaId}/presencia`)
+      .subscribe((msg) => {
+        if (msg.tipo === 'ENTRO') {
+          if (!this.usuariosPresentes.find(u => u.correo === msg.correo)) {
+            this.usuariosPresentes = [...this.usuariosPresentes, { correo: msg.correo, nombre: msg.nombre }];
+          }
+        } else {
+          this.usuariosPresentes = this.usuariosPresentes.filter(u => u.correo !== msg.correo);
+        }
+      });
+
+    // Anunciar presencia propia
+    this.wsService.publicar(`/app/politicas/${politicaId}/presencia`, {
+      tipo: 'ENTRO',
+      politicaId,
+      correo: usuario.correo,
+      nombre: usuario.nombre,
+    });
+  }
+
+  private detenerColaboracion(): void {
+    const politicaId = this.politica?.id;
+    const usuario = this.authService.obtenerUsuarioActual();
+    if (politicaId && usuario) {
+      this.wsService.publicar(`/app/politicas/${politicaId}/presencia`, {
+        tipo: 'SALIO',
+        politicaId,
+        correo: usuario.correo,
+        nombre: usuario.nombre,
+      });
+    }
+    this.subColaborativo?.unsubscribe();
+    this.subPresencia?.unsubscribe();
+    this.wsService.desconectar();
+  }
+
+  private aplicarCambioRemoto(payload: any): void {
+    if (!this.politica) return;
+    // El payload es SolicitudActualizarDiagrama con carriles/nodos/conexiones
+    if (payload.carriles) this.politica.carriles = payload.carriles;
+    if (payload.nodos) this.politica.nodos = payload.nodos;
+    if (payload.conexiones) this.politica.conexiones = payload.conexiones;
+    this.inicializarGrafo();
+    this.snackBar.open('Diagrama actualizado por otro usuario', 'Cerrar', { duration: 2500 });
+  }
+
+  private publicarCambioColaborativo(): void {
+    const politicaId = this.politica?.id;
+    const usuario = this.authService.obtenerUsuarioActual();
+    if (!politicaId || !usuario) return;
+
+    const payload: SolicitudActualizarDiagrama = {
+      carriles: this.politica!.carriles,
+      nodos: this.politica!.nodos,
+      conexiones: this.politica!.conexiones,
+    };
+
+    this.wsService.publicar(`/app/politicas/${politicaId}/colaborar`, {
+      tipo: 'CAMBIO',
+      politicaId,
+      autorCorreo: usuario.correo,
+      autorNombre: usuario.nombre,
+      payload,
+    });
+  }
+
+  // ── CU-09: Voz ─────────────────────────────────────────────────────────────
+
+  get soportaVoz(): boolean {
+    return !!((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition);
+  }
+
+  iniciarGrabacionVoz(): void {
+    if (!this.soportaVoz) {
+      this.snackBar.open('Tu navegador no soporta reconocimiento de voz. Usa Chrome o Edge.', 'Cerrar', { duration: 4000 });
+      return;
+    }
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    this.reconocimientoVoz = new SpeechRecognition();
+    this.reconocimientoVoz.lang = 'es-ES';
+    this.reconocimientoVoz.continuous = false;
+    this.reconocimientoVoz.interimResults = false;
+
+    this.reconocimientoVoz.onstart = () => { this.grabandoVoz = true; };
+    this.reconocimientoVoz.onend = () => { this.grabandoVoz = false; };
+    this.reconocimientoVoz.onerror = (evt: any) => {
+      this.grabandoVoz = false;
+      this.snackBar.open(`Error de voz: ${evt.error}`, 'Cerrar', { duration: 4000 });
+    };
+    this.reconocimientoVoz.onresult = (evt: any) => {
+      const transcripcion: string = evt.results[0][0].transcript;
+      this.promptIA = transcripcion;
+      this.snackBar.open(`Transcripción: "${transcripcion}"`, 'Cerrar', { duration: 3000 });
+    };
+
+    this.reconocimientoVoz.start();
+  }
+
+  detenerGrabacionVoz(): void {
+    if (this.reconocimientoVoz) {
+      this.reconocimientoVoz.stop();
+    }
   }
 
   // ── Utilidades ─────────────────────────────────────────────────────────

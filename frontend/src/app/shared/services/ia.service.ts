@@ -13,6 +13,7 @@ export interface NodoIA {
   id: string;
   etiqueta: string;
   tipo: TipoNodo;
+  tipoFlujo?: string;
   posX: number;
   posY: number;
   ancho: number;
@@ -22,8 +23,8 @@ export interface NodoIA {
 
 export interface ConexionIA {
   id: string;
-  origenId: string;
-  destinoId: string;
+  nodoOrigenId: string;
+  nodoDestinoId: string;
   etiqueta?: string;
 }
 
