@@ -129,65 +129,77 @@ jobs:
       ai_url: ${{ steps.ai-url.outputs.url }}
 
   # ─────────────────────────────────────────────────────────────
-  # JOB 3: Frontend Angular — DESHABILITADO (fase 2)
-  # Descomentar el bloque completo cuando el backend esté verificado
+  # JOB 3: Frontend Angular
   # ─────────────────────────────────────────────────────────────
-  # deploy-frontend:
-  #   name: Build & Deploy Frontend
-  #   runs-on: ubuntu-latest
-  #   needs: [deploy-backend, deploy-ai-service]
-  #   steps:
-  #     - name: Checkout ciclo-3
-  #       uses: actions/checkout@v4
-  #       with:
-  #         ref: ciclo-3
-  #     - name: Authenticate with GCP
-  #       uses: google-github-actions/auth@v2
-  #       with:
-  #         credentials_json: ${{ secrets.GCP_SA_KEY }}
-  #     - name: Configure Docker for Artifact Registry
-  #       run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
-  #     - name: Patch API URLs in Angular services
-  #       working-directory: frontend
-  #       run: |
-  #         BACKEND_URL="${{ needs.deploy-backend.outputs.backend_url }}"
-  #         AI_URL="${{ needs.deploy-ai-service.outputs.ai_url }}"
-  #         find src/app/shared/services -name "*.ts" \
-  #           -exec sed -i "s|http://localhost:8080|$BACKEND_URL|g" {} \;
-  #         find src/app/shared/services -name "*.ts" \
-  #           -exec sed -i "s|http://localhost:8001|$AI_URL|g" {} \;
-  #     - name: Build frontend image
-  #       working-directory: frontend
-  #       run: |
-  #         docker build -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/angular-frontend:${{ github.sha }} .
-  #     - name: Push frontend image
-  #       run: |
-  #         docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/angular-frontend:${{ github.sha }}
-  #     - name: Deploy frontend to Cloud Run
-  #       run: |
-  #         gcloud run deploy angular-frontend \
-  #           --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/angular-frontend:${{ github.sha }} \
-  #           --platform managed \
-  #           --region ${{ env.REGION }} \
-  #           --allow-unauthenticated \
-  #           --port 8080 \
-  #           --memory 256Mi \
-  #           --cpu 1 \
-  #           --min-instances 0 \
-  #           --max-instances 3 \
-  #           --project ${{ env.PROJECT_ID }}
-  #     - name: Update backend CORS with real frontend URL
-  #       run: |
-  #         FRONTEND_URL=$(gcloud run services describe angular-frontend \
-  #           --region ${{ env.REGION }} \
-  #           --format='value(status.url)' \
-  #           --project ${{ env.PROJECT_ID }})
-  #         gcloud run services update spring-service \
-  #           --region ${{ env.REGION }} \
-  #           --update-env-vars "CORS_ORIGINS=$FRONTEND_URL" \
-  #           --project ${{ env.PROJECT_ID }}
-  #         gcloud run services update ai-service \
-  #           --region ${{ env.REGION }} \
-  #           --update-env-vars "ALLOWED_ORIGINS=$FRONTEND_URL" \
-  #           --project ${{ env.PROJECT_ID }}
-  #         echo "Deploy completo. Frontend: $FRONTEND_URL"
+  deploy-frontend:
+    name: Build & Deploy Frontend
+    runs-on: ubuntu-latest
+    needs: [deploy-backend, deploy-ai-service]
+    steps:
+      - name: Checkout ciclo-3
+        uses: actions/checkout@v4
+        with:
+          ref: ciclo-3
+
+      - name: Authenticate with GCP
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+
+      - name: Patch API URLs in Angular services
+        working-directory: frontend
+        run: |
+          BACKEND_URL="${{ needs.deploy-backend.outputs.backend_url }}"
+          AI_URL="${{ needs.deploy-ai-service.outputs.ai_url }}"
+          find src/app/shared/services -name "*.ts" \
+            -exec sed -i "s|http://localhost:8080|$BACKEND_URL|g" {} \;
+          find src/app/shared/services -name "*.ts" \
+            -exec sed -i "s|http://localhost:8001|$AI_URL|g" {} \;
+
+      - name: Build frontend image
+        working-directory: frontend
+        run: |
+          docker build -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/angular-frontend:${{ github.sha }} .
+
+      - name: Push frontend image
+        run: |
+          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/angular-frontend:${{ github.sha }}
+
+      - name: Deploy frontend to Cloud Run
+        run: |
+          gcloud run deploy angular-frontend \
+            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/angular-frontend:${{ github.sha }} \
+            --platform managed \
+            --region ${{ env.REGION }} \
+            --allow-unauthenticated \
+            --port 8080 \
+            --memory 256Mi \
+            --cpu 1 \
+            --min-instances 0 \
+            --max-instances 3 \
+            --project ${{ env.PROJECT_ID }}
+
+      - name: Update backend CORS with real frontend URL
+        run: |
+          FRONTEND_URL=$(gcloud run services describe angular-frontend \
+            --region ${{ env.REGION }} \
+            --format='value(status.url)' \
+            --project ${{ env.PROJECT_ID }})
+          gcloud run services update spring-service \
+            --region ${{ env.REGION }} \
+            --update-env-vars "CORS_ORIGINS=$FRONTEND_URL" \
+            --project ${{ env.PROJECT_ID }}
+          gcloud run services update ai-service \
+            --region ${{ env.REGION }} \
+            --update-env-vars "ALLOWED_ORIGINS=$FRONTEND_URL" \
+            --project ${{ env.PROJECT_ID }}
+          echo ""
+          echo "=========================================="
+          echo "   DEPLOY COMPLETO"
+          echo "=========================================="
+          echo "  Frontend:   $FRONTEND_URL"
+          echo "  Backend:    ${{ needs.deploy-backend.outputs.backend_url }}"
+          echo "=========================================="
