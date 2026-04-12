@@ -1,0 +1,65 @@
+.contenedor-usuarios {
+  padding: 24px;
+
+  .encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    h2 {
+      margin: 0;
+      font-size: 22px;
+    }
+  }
+}
+
+.tabla-completa {
+  width: 100%;
+}
+
+.sin-datos {
+  text-align: center;
+  padding: 32px;
+  color: #757575;
+}
+
+.panel-lateral {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 400px;
+  height: 100vh;
+  background: white;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 1000;
+  overflow-y: auto;
+
+  .panel-contenido {
+    padding: 24px;
+  }
+
+  .panel-encabezado {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+
+    h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+  }
+}
+
+.campo-completo {
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.acciones-panel {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}

@@ -1,0 +1,18 @@
+<mat-toolbar color="primary" class="app-navbar" *ngIf="mostrarNavbar">
+  <span class="navbar-brand">Workflow Engine</span>
+  <span class="navbar-spacer"></span>
+  <span class="navbar-user" *ngIf="usuario">
+    <mat-icon>account_circle</mat-icon>
+    {{ usuario.nombre }}
+    <mat-chip class="navbar-rol" [color]="usuario.rol === 'ADMIN' ? 'accent' : 'primary'" highlighted>
+      {{ usuario.rol === 'ADMIN' ? 'Administrador' : 'Asesor' }}
+    </mat-chip>
+  </span>
+  <button mat-icon-button matTooltip="Cerrar sesión" (click)="cerrarSesion()" class="btn-logout">
+    <mat-icon>logout</mat-icon>
+  </button>
+</mat-toolbar>
+
+<div [class.with-navbar]="mostrarNavbar">
+  <router-outlet></router-outlet>
+</div>

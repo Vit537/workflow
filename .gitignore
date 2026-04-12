@@ -1,0 +1,30 @@
+# Backend
+backend/target/
+backend/.mvn/
+*.class
+*.jar
+*.war
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Python
+ai-service/__pycache__/
+ai-service/.venv/
+ai-service/venv/
+ai-service/*.pyc
+ai-service/.env
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

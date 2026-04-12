@@ -1,0 +1,51 @@
+@import '@angular/material/prebuilt-themes/indigo-pink.css';
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: Roboto, 'Helvetica Neue', sans-serif;
+}
+
+/* Navbar global */
+.app-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navbar-brand {
+  font-size: 1.1rem;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.navbar-spacer {
+  flex: 1;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+}
+
+.navbar-rol {
+  font-size: 0.75rem !important;
+  height: 22px !important;
+}
+
+.btn-logout {
+  margin-left: 8px;
+}
+
+/* Offset content so it isn't hidden behind the fixed toolbar */
+.with-navbar {
+  padding-top: 64px;
+}

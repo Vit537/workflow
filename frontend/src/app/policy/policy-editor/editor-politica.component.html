@@ -1,0 +1,277 @@
+<div class="editor-wrapper" *ngIf="!cargando; else skeletonCarga">
+
+  <!-- Barra superior -->
+  <mat-toolbar color="primary" class="editor-toolbar">
+    <button mat-icon-button (click)="volverALista()" matTooltip="Volver a la lista">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <span class="titulo-politica">{{ politica?.nombre }}</span>
+    <mat-chip [color]="politica?.estado === 'PUBLICADA' ? 'primary' : 'accent'" highlighted class="estado-chip">
+      {{ politica?.estado }}
+    </mat-chip>
+    <span class="spacer"></span>
+    <button mat-stroked-button (click)="panelCarrilAbierto = true"
+      [disabled]="politica?.estado === 'PUBLICADA'" class="btn-carril">
+      <mat-icon>add</mat-icon> Carril
+    </button>
+
+    <!-- CU-08: abrir panel IA -->
+    <button mat-stroked-button (click)="panelIaAbierto = !panelIaAbierto"
+      [disabled]="politica?.estado === 'PUBLICADA'" class="btn-ia" matTooltip="Generar diagrama con IA">
+      <mat-icon>auto_awesome</mat-icon> IA
+    </button>
+
+    <!-- CU-07: publicar -->
+    <button mat-raised-button color="accent" (click)="publicarPolitica()"
+      [disabled]="publicando || politica?.estado === 'PUBLICADA'" class="btn-publicar"
+      matTooltip="Publicar política">
+      <mat-spinner *ngIf="publicando" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!publicando">publish</mat-icon>
+      <span>{{ publicando ? 'Publicando...' : 'Publicar' }}</span>
+    </button>
+
+    <button mat-raised-button (click)="guardarDiagrama()"
+      [disabled]="guardando || politica?.estado === 'PUBLICADA'" class="btn-guardar">
+      <mat-spinner *ngIf="guardando" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!guardando">save</mat-icon>
+      <span>{{ guardando ? 'Guardando...' : 'Guardar' }}</span>
+    </button>
+  </mat-toolbar>
+
+  <!-- CU-08: Panel IA (desplegable inferior) -->
+  <div class="panel-ia" [class.panel-ia-visible]="panelIaAbierto">
+    <div class="panel-ia-header">
+      <mat-icon>auto_awesome</mat-icon>
+      <span>Generar diagrama con Inteligencia Artificial</span>
+      <button mat-icon-button (click)="panelIaAbierto = false"><mat-icon>close</mat-icon></button>
+    </div>
+    <div class="panel-ia-body">
+      <mat-form-field appearance="outline" class="ia-input">
+        <mat-label>Describe el proceso que quieres modelar</mat-label>
+        <textarea matInput [(ngModel)]="promptIA" rows="3"
+          placeholder="Ej: Proceso de aprobación de solicitudes de crédito con validación de documentos, revisión del comité y notificación al cliente."></textarea>
+      </mat-form-field>
+      <div class="ia-actions">
+        <button mat-raised-button color="primary" (click)="generarDiagramaConIA()"
+          [disabled]="generandoIA || !promptIA.trim()">
+          <mat-spinner *ngIf="generandoIA" diameter="18"></mat-spinner>
+          <mat-icon *ngIf="!generandoIA">smart_toy</mat-icon>
+          {{ generandoIA ? 'Generando...' : 'Generar Diagrama' }}
+        </button>
+        <span *ngIf="descripcionIA" class="ia-descripcion">{{ descripcionIA }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="editor-body">
+
+    <!-- Paleta de nodos izquierda -->
+    <div class="paleta">
+      <p class="paleta-titulo">Nodos</p>
+      <button *ngFor="let item of tiposNodo" mat-stroked-button class="btn-nodo"
+        [disabled]="politica?.estado === 'PUBLICADA'"
+        (click)="agregarNodo(item.tipo, item.etiqueta)"
+        [matTooltip]="'Agregar: ' + item.etiqueta">
+        <mat-icon>{{ item.icono }}</mat-icon>
+        <span>{{ item.etiqueta }}</span>
+      </button>
+      <mat-divider></mat-divider>
+      <p class="paleta-hint">Haz clic en un nodo del diagrama para editar sus propiedades.</p>
+    </div>
+
+    <!-- Lienzo maxGraph -->
+    <div class="lienzo-wrapper">
+      <div #graphContainer class="lienzo"></div>
+    </div>
+
+    <!-- Panel propiedades del nodo (CU-05 y CU-06) -->
+    <div class="panel-propiedades" [class.panel-visible]="nodoSeleccionado">
+      <div class="prop-header">
+        <h3>{{ nodoSeleccionado?.etiqueta }}</h3>
+        <button mat-icon-button (click)="cerrarPropiedades()"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <mat-tab-group [(selectedIndex)]="tabActiva" class="prop-tabs">
+
+        <!-- TAB CU-05: Tipo de Flujo -->
+        <mat-tab label="Flujo">
+          <div class="tab-content">
+            <form [formGroup]="formularioFlujo">
+              <p class="campo-label">Tipo de comportamiento</p>
+
+              <mat-radio-group formControlName="tipoFlujo" class="radio-flujo">
+                <mat-radio-button *ngFor="let op of opcionesFlujo" [value]="op.valor" class="radio-item">
+                  <span class="radio-titulo">{{ op.etiqueta }}</span>
+                  <small class="radio-desc">{{ op.descripcion }}</small>
+                </mat-radio-button>
+              </mat-radio-group>
+
+              <button mat-raised-button color="primary" class="btn-guardar-prop"
+                (click)="guardarTipoFlujo()" [disabled]="formularioFlujo.invalid">
+                Aplicar tipo de flujo
+              </button>
+
+              <!-- Condiciones (solo CONDICIONAL) -->
+              <ng-container *ngIf="formularioFlujo.get('tipoFlujo')?.value === 'CONDICIONAL'">
+                <mat-divider class="divider"></mat-divider>
+                <p class="campo-label">Condiciones de ramificacion</p>
+
+                <mat-chip-set class="chip-lista">
+                  <mat-chip *ngFor="let c of nodoSeleccionado?.condiciones; let i = index"
+                    (removed)="eliminarCondicion(i)" [removable]="true">
+                    {{ c }}
+                    <button matChipRemove><mat-icon>cancel</mat-icon></button>
+                  </mat-chip>
+                </mat-chip-set>
+
+                <div class="fila-agregar">
+                  <mat-form-field appearance="outline" class="input-condicion">
+                    <mat-label>Nueva condicion</mat-label>
+                    <input matInput formControlName="nuevaCondicion"
+                      placeholder="Ej: aprobado" (keydown.enter)="agregarCondicion()">
+                  </mat-form-field>
+                  <button mat-icon-button color="primary" (click)="agregarCondicion()"
+                    matTooltip="Agregar condicion">
+                    <mat-icon>add_circle</mat-icon>
+                  </button>
+                </div>
+              </ng-container>
+            </form>
+          </div>
+        </mat-tab>
+
+        <!-- TAB CU-06: Formulario del nodo -->
+        <mat-tab label="Formulario">
+          <div class="tab-content">
+
+            <!-- Encabezado del formulario -->
+            <form [formGroup]="formularioFormulario">
+              <mat-form-field appearance="outline" class="campo-full">
+                <mat-label>Titulo del formulario</mat-label>
+                <input matInput formControlName="titulo" placeholder="Ej: Datos del cliente">
+                <mat-error *ngIf="formularioFormulario.get('titulo')?.hasError('required')">
+                  El titulo es obligatorio
+                </mat-error>
+              </mat-form-field>
+
+              <mat-form-field appearance="outline" class="campo-full">
+                <mat-label>Instrucciones para el asesor</mat-label>
+                <textarea matInput formControlName="instrucciones" rows="3"
+                  placeholder="Ej: Solicite DNI y comprobante"></textarea>
+              </mat-form-field>
+
+              <button mat-raised-button color="primary" class="btn-guardar-prop"
+                (click)="guardarEncabezadoFormulario()" [disabled]="formularioFormulario.invalid">
+                Guardar encabezado
+              </button>
+
+              <!-- Requisitos -->
+              <mat-divider class="divider"></mat-divider>
+              <p class="campo-label">Requisitos del cliente</p>
+
+              <mat-chip-set class="chip-lista">
+                <mat-chip *ngFor="let r of requisitosNodo; let i = index"
+                  (removed)="eliminarRequisito(i)" [removable]="true">
+                  {{ r }}
+                  <button matChipRemove><mat-icon>cancel</mat-icon></button>
+                </mat-chip>
+              </mat-chip-set>
+
+              <div class="fila-agregar">
+                <mat-form-field appearance="outline" class="input-condicion">
+                  <mat-label>Nuevo requisito</mat-label>
+                  <input matInput formControlName="nuevoRequisito"
+                    placeholder="Ej: DNI vigente" (keydown.enter)="agregarRequisito()">
+                </mat-form-field>
+                <button mat-icon-button color="primary" (click)="agregarRequisito()"
+                  matTooltip="Agregar requisito">
+                  <mat-icon>add_circle</mat-icon>
+                </button>
+              </div>
+            </form>
+
+            <!-- Campos del formulario -->
+            <mat-divider class="divider"></mat-divider>
+            <p class="campo-label">Campos del formulario</p>
+
+            <div class="tabla-campos" *ngIf="camposNodo.length > 0">
+              <div class="fila-campo cabecera">
+                <span>Etiqueta</span><span>Tipo</span><span>Req.</span><span></span>
+              </div>
+              <div class="fila-campo" *ngFor="let campo of camposNodo; let i = index">
+                <span>{{ campo.etiqueta }}</span>
+                <span>{{ campo.tipoCampo }}</span>
+                <mat-icon [style.color]="campo.requerido ? '#e53935' : '#9e9e9e'">
+                  {{ campo.requerido ? 'star' : 'star_border' }}
+                </mat-icon>
+                <button mat-icon-button color="warn" (click)="eliminarCampo(i)">
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+
+            <form [formGroup]="formularioCampo" class="form-campo">
+              <mat-form-field appearance="outline" class="campo-full">
+                <mat-label>Nombre tecnico</mat-label>
+                <input matInput formControlName="nombre" placeholder="Ej: numeroDni">
+              </mat-form-field>
+              <mat-form-field appearance="outline" class="campo-full">
+                <mat-label>Etiqueta visible</mat-label>
+                <input matInput formControlName="etiqueta" placeholder="Ej: N de DNI">
+              </mat-form-field>
+              <div class="fila-dos">
+                <mat-form-field appearance="outline" class="campo-tipo">
+                  <mat-label>Tipo</mat-label>
+                  <mat-select formControlName="tipoCampo">
+                    <mat-option *ngFor="let tc of tiposCampo" [value]="tc.valor">
+                      {{ tc.etiqueta }}
+                    </mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-slide-toggle formControlName="requerido" class="toggle-req">
+                  Requerido
+                </mat-slide-toggle>
+              </div>
+              <button mat-raised-button color="accent" class="btn-guardar-prop"
+                (click)="agregarCampo()" [disabled]="formularioCampo.invalid">
+                <mat-icon>add</mat-icon> Agregar campo
+              </button>
+            </form>
+
+          </div>
+        </mat-tab>
+      </mat-tab-group>
+    </div>
+
+  </div>
+</div>
+
+<!-- Dialog agregar carril -->
+<div class="overlay" *ngIf="panelCarrilAbierto" (click)="panelCarrilAbierto = false"></div>
+<div class="dialog-carril" *ngIf="panelCarrilAbierto">
+  <div class="dialog-header">
+    <h3>Nuevo Carril</h3>
+    <button mat-icon-button (click)="panelCarrilAbierto = false"><mat-icon>close</mat-icon></button>
+  </div>
+  <form [formGroup]="formularioCarril" (ngSubmit)="agregarCarril()" class="dialog-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Nombre del carril</mat-label>
+      <input matInput formControlName="nombre" placeholder="Ej: Atencion al Cliente">
+      <mat-error *ngIf="formularioCarril.get('nombre')?.hasError('required')">
+        El nombre es obligatorio
+      </mat-error>
+    </mat-form-field>
+    <div class="dialog-acciones">
+      <button mat-button type="button" (click)="panelCarrilAbierto = false">Cancelar</button>
+      <button mat-raised-button color="primary" type="submit"
+        [disabled]="formularioCarril.invalid">Agregar</button>
+    </div>
+  </form>
+</div>
+
+<ng-template #skeletonCarga>
+  <div class="cargando-editor">
+    <mat-spinner></mat-spinner>
+    <p>Cargando editor...</p>
+  </div>
+</ng-template>

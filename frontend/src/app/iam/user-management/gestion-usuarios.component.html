@@ -1,0 +1,143 @@
+<div class="contenedor-usuarios">
+
+  <!-- Encabezado -->
+  <div class="encabezado">
+    <h2>Gestión de Usuarios</h2>
+    <button mat-raised-button color="primary" (click)="abrirCrearUsuario()">
+      <mat-icon>person_add</mat-icon>
+      Nuevo Usuario
+    </button>
+  </div>
+
+  <!-- Tabla de usuarios -->
+  <mat-card>
+    <mat-card-content>
+      <mat-progress-bar *ngIf="cargando" mode="indeterminate"></mat-progress-bar>
+
+      <table mat-table [dataSource]="listaUsuarios" class="tabla-completa">
+
+        <!-- Columna Nombre -->
+        <ng-container matColumnDef="nombre">
+          <th mat-header-cell *matHeaderCellDef>Nombre</th>
+          <td mat-cell *matCellDef="let usuario">{{ usuario.nombre }}</td>
+        </ng-container>
+
+        <!-- Columna Correo -->
+        <ng-container matColumnDef="correo">
+          <th mat-header-cell *matHeaderCellDef>Correo</th>
+          <td mat-cell *matCellDef="let usuario">{{ usuario.correo }}</td>
+        </ng-container>
+
+        <!-- Columna Rol -->
+        <ng-container matColumnDef="rol">
+          <th mat-header-cell *matHeaderCellDef>Rol</th>
+          <td mat-cell *matCellDef="let usuario">
+            <mat-chip [color]="usuario.rol === 'ADMIN' ? 'primary' : 'accent'" selected>
+              {{ usuario.rol === 'ADMIN' ? 'Administrador' : 'Asesor' }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Columna Estado -->
+        <ng-container matColumnDef="estado">
+          <th mat-header-cell *matHeaderCellDef>Estado</th>
+          <td mat-cell *matCellDef="let usuario">
+            <mat-chip [color]="usuario.activo ? 'primary' : 'warn'" selected>
+              {{ usuario.activo ? 'Activo' : 'Inactivo' }}
+            </mat-chip>
+          </td>
+        </ng-container>
+
+        <!-- Columna Acciones -->
+        <ng-container matColumnDef="acciones">
+          <th mat-header-cell *matHeaderCellDef>Acciones</th>
+          <td mat-cell *matCellDef="let usuario">
+            <button mat-icon-button color="primary" (click)="abrirEditarUsuario(usuario)"
+              matTooltip="Editar usuario">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button
+              mat-icon-button
+              color="warn"
+              (click)="desactivarUsuario(usuario)"
+              [disabled]="!usuario.activo"
+              matTooltip="Desactivar usuario"
+            >
+              <mat-icon>person_off</mat-icon>
+            </button>
+          </td>
+        </ng-container>
+
+        <tr mat-header-row *matHeaderRowDef="columnasMostradas"></tr>
+        <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
+      </table>
+
+      <div *ngIf="!cargando && listaUsuarios.length === 0" class="sin-datos">
+        No hay usuarios registrados.
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+</div>
+
+<!-- Panel lateral de creación/edición -->
+<div class="panel-lateral" *ngIf="panelAbierto">
+  <div class="panel-contenido">
+    <div class="panel-encabezado">
+      <h3>{{ editando ? 'Editar Usuario' : 'Nuevo Usuario' }}</h3>
+      <button mat-icon-button (click)="cerrarPanel()">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+
+    <form [formGroup]="formularioUsuario" (ngSubmit)="guardarUsuario()">
+
+      <mat-form-field appearance="outline" class="campo-completo">
+        <mat-label>Nombre completo</mat-label>
+        <input matInput formControlName="nombre" />
+        <mat-error *ngIf="formularioUsuario.get('nombre')?.hasError('required')">
+          El nombre es obligatorio
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo-completo">
+        <mat-label>Correo electrónico</mat-label>
+        <input matInput type="email" formControlName="correo" />
+        <mat-error *ngIf="formularioUsuario.get('correo')?.hasError('required')">
+          El correo es obligatorio
+        </mat-error>
+        <mat-error *ngIf="formularioUsuario.get('correo')?.hasError('email')">
+          Ingrese un correo válido
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo-completo">
+        <mat-label>Contraseña {{ editando ? '(dejar en blanco para no cambiar)' : '' }}</mat-label>
+        <input matInput type="password" formControlName="contrasena" />
+        <mat-error *ngIf="formularioUsuario.get('contrasena')?.hasError('minlength')">
+          Mínimo 6 caracteres
+        </mat-error>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="campo-completo">
+        <mat-label>Rol</mat-label>
+        <mat-select formControlName="rol">
+          <mat-option value="ADMIN">Administrador</mat-option>
+          <mat-option value="ASESOR">Asesor</mat-option>
+        </mat-select>
+        <mat-error *ngIf="formularioUsuario.get('rol')?.hasError('required')">
+          El rol es obligatorio
+        </mat-error>
+      </mat-form-field>
+
+      <div class="acciones-panel">
+        <button mat-stroked-button type="button" (click)="cerrarPanel()">Cancelar</button>
+        <button mat-raised-button color="primary" type="submit"
+          [disabled]="formularioUsuario.invalid">
+          {{ editando ? 'Guardar cambios' : 'Crear usuario' }}
+        </button>
+      </div>
+
+    </form>
+  </div>
+</div>

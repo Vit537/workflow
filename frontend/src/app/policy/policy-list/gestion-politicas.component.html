@@ -1,0 +1,119 @@
+<div class="politicas-container">
+  <!-- Header -->
+  <div class="header">
+    <div class="header-info">
+      <h1>Políticas de Negocio</h1>
+      <p>Gestiona y diseña los flujos de procesos de tu organización</p>
+    </div>
+    <button mat-raised-button color="primary" (click)="abrirPanel()">
+      <mat-icon>add</mat-icon> Nueva Política
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <mat-card>
+    <mat-card-content>
+      <div *ngIf="cargando" class="cargando">
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      </div>
+
+      <div *ngIf="errorCarga && !cargando" class="estado-error">
+        <mat-icon color="warn">cloud_off</mat-icon>
+        <p>No se pudo conectar con el servidor.</p>
+        <button mat-stroked-button color="primary" (click)="cargarPoliticas()">
+          <mat-icon>refresh</mat-icon> Reintentar
+        </button>
+      </div>
+
+      <div *ngIf="!cargando && !errorCarga && politicas.length === 0" class="vacio">
+        <mat-icon class="icono-vacio">description</mat-icon>
+        <p>No hay políticas creadas. ¡Crea la primera!</p>
+      </div>
+
+      <mat-table [dataSource]="politicas" *ngIf="!cargando && !errorCarga && politicas.length > 0">
+        <ng-container matColumnDef="nombre">
+          <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
+          <mat-cell *matCellDef="let p">
+            <strong>{{ p.nombre }}</strong>
+            <small *ngIf="p.descripcion">{{ p.descripcion }}</small>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="estado">
+          <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+          <mat-cell *matCellDef="let p">
+            <mat-chip [color]="colorEstado(p.estado)" highlighted>
+              {{ etiquetaEstado(p.estado) }}
+            </mat-chip>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="creadoPor">
+          <mat-header-cell *matHeaderCellDef>Creado por</mat-header-cell>
+          <mat-cell *matCellDef="let p">{{ p.creadoPor }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="creadoEn">
+          <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
+          <mat-cell *matCellDef="let p">{{ p.creadoEn | date:'dd/MM/yyyy' }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="acciones">
+          <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
+          <mat-cell *matCellDef="let p">
+            <button mat-icon-button color="primary" matTooltip="Editar diagrama"
+              (click)="abrirEditor(p.id)"
+              [disabled]="p.estado === 'PUBLICADA'">
+              <mat-icon>edit</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" matTooltip="Eliminar"
+              (click)="eliminarPolitica(p.id)"
+              [disabled]="p.estado === 'PUBLICADA'">
+              <mat-icon>delete</mat-icon>
+            </button>
+          </mat-cell>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="columnas"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: columnas;"></mat-row>
+      </mat-table>
+    </mat-card-content>
+  </mat-card>
+</div>
+
+<!-- Panel lateral: crear política -->
+<div class="overlay" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
+<div class="panel-lateral" [class.panel-abierto]="panelAbierto">
+  <div class="panel-header">
+    <h2>Nueva Política</h2>
+    <button mat-icon-button (click)="cerrarPanel()"><mat-icon>close</mat-icon></button>
+  </div>
+
+  <form [formGroup]="formularioCrear" (ngSubmit)="crearPolitica()" class="panel-form">
+    <mat-form-field appearance="outline">
+      <mat-label>Nombre de la política</mat-label>
+      <input matInput formControlName="nombre" placeholder="Ej: Solicitud de conexión eléctrica">
+      <mat-error *ngIf="formularioCrear.get('nombre')?.hasError('required')">
+        El nombre es obligatorio
+      </mat-error>
+      <mat-error *ngIf="formularioCrear.get('nombre')?.hasError('minlength')">
+        Mínimo 3 caracteres
+      </mat-error>
+    </mat-form-field>
+
+    <mat-form-field appearance="outline">
+      <mat-label>Descripción (opcional)</mat-label>
+      <textarea matInput formControlName="descripcion" rows="3"
+        placeholder="Describe el propósito de esta política"></textarea>
+    </mat-form-field>
+
+    <div class="panel-acciones">
+      <button mat-button type="button" (click)="cerrarPanel()">Cancelar</button>
+      <button mat-raised-button color="primary" type="submit"
+        [disabled]="formularioCrear.invalid || guardando">
+        <mat-spinner *ngIf="guardando" diameter="18"></mat-spinner>
+        <span *ngIf="!guardando">Crear y Editar</span>
+      </button>
+    </div>
+  </form>
+</div>

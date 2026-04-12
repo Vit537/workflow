@@ -1,0 +1,71 @@
+<div class="login-container">
+  <mat-card class="login-card">
+    <mat-card-header>
+      <mat-card-title>Workflow Engine</mat-card-title>
+      <mat-card-subtitle>Ingrese sus credenciales para continuar</mat-card-subtitle>
+    </mat-card-header>
+
+    <mat-card-content>
+      <form [formGroup]="formularioLogin" (ngSubmit)="iniciarSesion()">
+
+        <mat-form-field appearance="outline" class="campo-completo">
+          <mat-label>Correo electrónico</mat-label>
+          <input
+            matInput
+            type="email"
+            formControlName="correo"
+            placeholder="usuario@empresa.com"
+            autocomplete="email"
+          />
+          <mat-icon matSuffix>email</mat-icon>
+          <mat-error *ngIf="formularioLogin.get('correo')?.hasError('required')">
+            El correo es obligatorio
+          </mat-error>
+          <mat-error *ngIf="formularioLogin.get('correo')?.hasError('email')">
+            Ingrese un correo válido
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-completo">
+          <mat-label>Contraseña</mat-label>
+          <input
+            matInput
+            [type]="ocultarContrasena ? 'password' : 'text'"
+            formControlName="contrasena"
+            autocomplete="current-password"
+          />
+          <button
+            mat-icon-button
+            matSuffix
+            type="button"
+            (click)="ocultarContrasena = !ocultarContrasena"
+          >
+            <mat-icon>{{ ocultarContrasena ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="formularioLogin.get('contrasena')?.hasError('required')">
+            La contraseña es obligatoria
+          </mat-error>
+          <mat-error *ngIf="formularioLogin.get('contrasena')?.hasError('minlength')">
+            La contraseña debe tener al menos 6 caracteres
+          </mat-error>
+        </mat-form-field>
+
+        <mat-error *ngIf="mensajeError" class="error-general">
+          {{ mensajeError }}
+        </mat-error>
+
+        <button
+          mat-raised-button
+          color="primary"
+          type="submit"
+          class="boton-ingresar"
+          [disabled]="formularioLogin.invalid || cargando"
+        >
+          <mat-spinner *ngIf="cargando" diameter="20"></mat-spinner>
+          <span *ngIf="!cargando">Ingresar</span>
+        </button>
+
+      </form>
+    </mat-card-content>
+  </mat-card>
+</div>

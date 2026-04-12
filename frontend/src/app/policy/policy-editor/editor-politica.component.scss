@@ -1,0 +1,399 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+.editor-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.editor-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+
+  .titulo-politica {
+    font-size: 16px;
+    font-weight: 500;
+    margin-right: 8px;
+  }
+
+  .estado-chip {
+    font-size: 11px;
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .btn-carril {
+    color: white;
+    border-color: rgba(255, 255, 255, 0.6);
+    margin-right: 8px;
+  }
+
+  .btn-guardar {
+    background: white;
+    color: #3f51b5;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.editor-body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.paleta {
+  width: 140px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-right: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 12px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+
+  .paleta-titulo {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: rgba(0, 0, 0, 0.54);
+    letter-spacing: 0.5px;
+  }
+}
+
+.btn-nodo {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  justify-content: flex-start;
+  font-size: 12px;
+  padding: 0 8px;
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+.lienzo-wrapper {
+  flex: 1;
+  overflow: auto;
+  background: #f0f0f0;
+}
+
+.lienzo {
+  width: 100%;
+  min-height: 600px;
+  height: 100%;
+  background: white;
+  cursor: default;
+}
+
+/* ── Panel propiedades del nodo (CU-05 y CU-06) ── */
+.panel-propiedades {
+  width: 0;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: white;
+  border-left: 1px solid rgba(0, 0, 0, 0.12);
+  transition: width 0.28s ease;
+  display: flex;
+  flex-direction: column;
+
+  &.panel-visible {
+    width: 340px;
+    overflow-y: auto;
+  }
+}
+
+.prop-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+
+  h3 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.prop-tabs {
+  flex: 1;
+}
+
+.tab-content {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.campo-label {
+  margin: 0 0 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: rgba(0, 0, 0, 0.54);
+  letter-spacing: 0.4px;
+}
+
+.radio-flujo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.radio-item {
+  display: flex;
+  flex-direction: column;
+
+  .radio-titulo {
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .radio-desc {
+    font-size: 11px;
+    color: rgba(0, 0, 0, 0.54);
+    display: block;
+    margin-left: 24px;
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+}
+
+.btn-guardar-prop {
+  width: 100%;
+}
+
+.divider {
+  margin: 8px 0;
+}
+
+.chip-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+  min-height: 20px;
+}
+
+.fila-agregar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .input-condicion {
+    flex: 1;
+  }
+}
+
+.campo-full {
+  width: 100%;
+}
+
+.tabla-campos {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.fila-campo {
+  display: grid;
+  grid-template-columns: 1fr 80px 28px 36px;
+  align-items: center;
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &.cabecera {
+    background: #f5f5f5;
+    font-weight: 600;
+    color: rgba(0, 0, 0, 0.6);
+  }
+
+  mat-icon {
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+
+  button {
+    width: 28px;
+    height: 28px;
+    line-height: 28px;
+
+    mat-icon {
+      font-size: 14px;
+    }
+  }
+}
+
+.form-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.fila-dos {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+
+  .campo-tipo {
+    flex: 1;
+  }
+
+  .toggle-req {
+    flex-shrink: 0;
+    font-size: 13px;
+  }
+}
+
+/* Dialog carril */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 99;
+}
+
+.dialog-carril {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 360px;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  z-index: 100;
+  padding: 8px 0;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+}
+
+.dialog-form {
+  padding: 8px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  mat-form-field {
+    width: 100%;
+  }
+}
+
+.dialog-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Cargando */
+.cargando-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 16px;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+// CU-07 & CU-08 toolbar buttons
+.btn-ia {
+  margin-right: 4px;
+}
+
+.btn-publicar {
+  margin-right: 8px;
+}
+
+// CU-08: Panel IA desplegable
+.panel-ia {
+  background: #f5f5f5;
+  border-bottom: 2px solid #3f51b5;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease, padding 0.3s ease;
+  flex-shrink: 0;
+
+  &.panel-ia-visible {
+    max-height: 220px;
+    padding: 12px 16px;
+  }
+}
+
+.panel-ia-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 500;
+  margin-bottom: 8px;
+
+  span {
+    flex: 1;
+  }
+}
+
+.panel-ia-body {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+
+  .ia-input {
+    flex: 1;
+  }
+}
+
+.ia-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 4px;
+
+  .ia-descripcion {
+    font-size: 12px;
+    color: #555;
+    max-width: 260px;
+  }
+}
