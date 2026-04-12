@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.Instant;
+import java.util.Map;
 
 @Data
 @Builder
@@ -20,4 +21,5 @@ public class PasoTramite {
   private EstadoPaso estado;
   private Instant asignadoEn;
   private Instant completadoEn;
+  private Map<String, Object> datosFormulario;
 }

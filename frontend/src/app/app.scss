@@ -1,0 +1,62 @@
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+}
+
+.navbar-brand {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-right: 16px;
+}
+
+.navbar-links {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  a[mat-button] {
+    color: white;
+    opacity: 0.85;
+    transition: opacity 0.2s;
+
+    &:hover {
+      opacity: 1;
+    }
+
+    mat-icon {
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+  }
+
+  a.link-activo {
+    opacity: 1;
+    background: rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+  }
+}
+
+.navbar-spacer {
+  flex: 1;
+}
+
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+
+  .navbar-rol {
+    font-size: 0.75rem;
+  }
+}
+
+.btn-logout {
+  color: white;
+  margin-left: 8px;
+}
+
+.with-navbar {
+  min-height: calc(100vh - 64px);
+}

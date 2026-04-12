@@ -1,0 +1,191 @@
+.cargando-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px;
+  gap: 16px;
+  color: rgba(0, 0, 0, 0.54);
+}
+
+.detalle-container {
+  padding: 24px;
+  max-width: 880px;
+  margin: 0 auto;
+}
+
+.detalle-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+
+  .header-info {
+    flex: 1;
+
+    h1 {
+      margin: 0 0 4px;
+      font-size: 22px;
+      font-weight: 500;
+    }
+
+    p {
+      margin: 0;
+      color: rgba(0, 0, 0, 0.54);
+      font-size: 14px;
+    }
+  }
+
+  .spacer {
+    flex: 1;
+  }
+
+  .spinner-inline {
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 6px;
+  }
+}
+
+.seccion-card {
+  border-radius: 8px;
+
+  mat-card-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 16px;
+  }
+}
+
+.pasos-flujo {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.carril-grupo {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.carril-nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #3f51b5;
+  color: white;
+  padding: 8px 16px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.nodo-item {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.nodo-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: background 0.15s;
+
+  &:hover {
+    background: #f5f5f5;
+  }
+
+  .icono-nodo {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+    color: #666;
+
+    &.icono-inicio { color: #388e3c; }
+    &.icono-fin { color: #d32f2f; }
+    &.icono-decision { color: #f9a825; }
+    &.icono-actividad { color: #1565c0; }
+  }
+
+  .nodo-etiqueta {
+    flex: 1;
+    font-size: 14px;
+    font-weight: 500;
+  }
+
+  .chip-flujo {
+    font-size: 11px;
+    height: 20px;
+  }
+
+  .expand-icon {
+    color: rgba(0, 0, 0, 0.38);
+  }
+}
+
+.nodo-detalle {
+  padding: 12px 16px 16px;
+  background: #fafafa;
+}
+
+.formulario-info {
+  h4 {
+    margin: 8px 0 4px;
+    font-size: 14px;
+    font-weight: 600;
+  }
+
+  .instrucciones {
+    font-size: 13px;
+    color: rgba(0, 0, 0, 0.7);
+    margin: 0 0 12px;
+  }
+
+  .requisitos {
+    font-size: 13px;
+    margin-bottom: 12px;
+
+    ul {
+      margin: 4px 0 0;
+      padding-left: 20px;
+
+      li {
+        margin-bottom: 2px;
+      }
+    }
+  }
+}
+
+.campos-tabla {
+  font-size: 13px;
+
+  .tabla-campos {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 6px;
+
+    th {
+      text-align: left;
+      padding: 6px 12px;
+      background: #eeeeee;
+      font-weight: 600;
+      font-size: 12px;
+    }
+
+    td {
+      padding: 6px 12px;
+      border-bottom: 1px solid #e0e0e0;
+    }
+
+    tr:last-child td {
+      border-bottom: none;
+    }
+  }
+}

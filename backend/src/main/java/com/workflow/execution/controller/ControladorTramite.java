@@ -1,6 +1,7 @@
 package com.workflow.execution.controller;
 
 import com.workflow.execution.dto.RespuestaTramite;
+import com.workflow.execution.dto.SolicitudCompletarPaso;
 import com.workflow.execution.dto.SolicitudCrearTramite;
 import com.workflow.execution.service.ServicioTramite;
 import jakarta.validation.Valid;
@@ -40,5 +41,21 @@ public class ControladorTramite {
   @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
   public ResponseEntity<List<RespuestaTramite>> misActividades(Authentication autenticacion) {
     return ResponseEntity.ok(servicioTramite.listarTramitesPorAsesor(autenticacion.getName()));
+  }
+
+  @GetMapping("/{id}")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
+  public ResponseEntity<RespuestaTramite> obtenerTramite(@PathVariable String id) {
+    return ResponseEntity.ok(servicioTramite.obtenerTramite(id));
+  }
+
+  @PostMapping("/{tramiteId}/pasos/{nodoId}/completar")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
+  public ResponseEntity<RespuestaTramite> completarPaso(
+      @PathVariable String tramiteId,
+      @PathVariable String nodoId,
+      @RequestBody(required = false) SolicitudCompletarPaso solicitud) {
+    if (solicitud == null) solicitud = new SolicitudCompletarPaso();
+    return ResponseEntity.ok(servicioTramite.completarPaso(tramiteId, nodoId, solicitud));
   }
 }

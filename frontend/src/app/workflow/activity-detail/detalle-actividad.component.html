@@ -1,0 +1,119 @@
+<div *ngIf="cargando" class="cargando-wrapper">
+  <mat-spinner diameter="48"></mat-spinner>
+  <p>Cargando actividad...</p>
+</div>
+
+<div *ngIf="!cargando && tramite && paso" class="detalle-container">
+
+  <!-- Cabecera -->
+  <div class="actividad-header">
+    <button mat-icon-button (click)="volver()" matTooltip="Volver al monitor">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="header-info">
+      <h1>{{ paso.etiquetaNodo }}</h1>
+      <p>Trámite: <strong>{{ tramite.nombrePolitica }}</strong> &bull; Carril: {{ paso.carrilNombre }}</p>
+    </div>
+    <span class="spacer"></span>
+    <mat-chip [color]="paso.estado === 'EN_PROGRESO' ? 'accent' : 'primary'" highlighted>
+      {{ paso.estado }}
+    </mat-chip>
+  </div>
+
+  <!-- Instrucciones del formulario -->
+  <mat-card class="seccion-card" *ngIf="formulario">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>info_outline</mat-icon>
+        {{ formulario.titulo || 'Instrucciones de la actividad' }}
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <p *ngIf="formulario.instrucciones" class="instrucciones">{{ formulario.instrucciones }}</p>
+
+      <div *ngIf="formulario.requisitos?.length" class="requisitos">
+        <strong>Documentos que debe presentar el cliente:</strong>
+        <ul>
+          <li *ngFor="let r of formulario.requisitos">{{ r }}</li>
+        </ul>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Formulario de campos -->
+  <mat-card class="seccion-card" *ngIf="campos.length > 0">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>edit_note</mat-icon> Datos a registrar
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <form [formGroup]="formularioActividad" class="campos-form" *ngIf="formularioActividad">
+        <div *ngFor="let campo of campos" class="campo-wrapper">
+
+          <!-- Texto / Número -->
+          <mat-form-field *ngIf="campo.tipoCampo === 'TEXTO' || campo.tipoCampo === 'NUMERO'"
+            appearance="outline" class="campo-full">
+            <mat-label>{{ campo.etiqueta }}<span *ngIf="campo.requerido"> *</span></mat-label>
+            <input matInput [formControlName]="campo.nombre"
+              [type]="campo.tipoCampo === 'NUMERO' ? 'number' : 'text'">
+          </mat-form-field>
+
+          <!-- Fecha -->
+          <mat-form-field *ngIf="campo.tipoCampo === 'FECHA'" appearance="outline" class="campo-full">
+            <mat-label>{{ campo.etiqueta }}<span *ngIf="campo.requerido"> *</span></mat-label>
+            <input matInput [matDatepicker]="picker" [formControlName]="campo.nombre">
+            <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
+            <mat-datepicker #picker></mat-datepicker>
+          </mat-form-field>
+
+          <!-- Booleano -->
+          <div *ngIf="campo.tipoCampo === 'BOOLEANO'" class="campo-bool">
+            <mat-checkbox [formControlName]="campo.nombre">
+              {{ campo.etiqueta }}
+            </mat-checkbox>
+          </div>
+
+          <!-- Archivo -->
+          <div *ngIf="campo.tipoCampo === 'ARCHIVO'" class="campo-archivo">
+            <label class="lbl-campo">{{ campo.etiqueta }}<span *ngIf="campo.requerido"> *</span></label>
+            <input type="file" [attr.name]="campo.nombre">
+          </div>
+
+        </div>
+      </form>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Condición de salida para flujo condicional/iterativo -->
+  <mat-card class="seccion-card" *ngIf="necesitaCondicion">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>call_split</mat-icon> Resultado de esta actividad
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-radio-group [(ngModel)]="condicionElegida" class="radio-condiciones">
+        <mat-radio-button *ngFor="let c of condiciones" [value]="c" class="radio-opcion">
+          {{ c }}
+        </mat-radio-button>
+      </mat-radio-group>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Acción -->
+  <div class="acciones-footer" *ngIf="paso.estado !== 'COMPLETADO'">
+    <button mat-raised-button color="primary" (click)="completarActividad()"
+      [disabled]="completando">
+      <mat-spinner *ngIf="completando" diameter="18" class="spinner-btn"></mat-spinner>
+      <mat-icon *ngIf="!completando">check_circle</mat-icon>
+      {{ completando ? 'Completando...' : 'Marcar como completada' }}
+    </button>
+  </div>
+
+  <div class="completado-badge" *ngIf="paso.estado === 'COMPLETADO'">
+    <mat-icon>check_circle</mat-icon>
+    <span>Esta actividad ya fue completada.</span>
+  </div>
+
+</div>

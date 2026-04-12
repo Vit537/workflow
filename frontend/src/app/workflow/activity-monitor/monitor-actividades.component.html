@@ -28,7 +28,10 @@
 
       <mat-card-content>
         <div class="pasos-lista">
-          <div class="paso-item" *ngFor="let paso of t.pasos">
+          <div class="paso-item" *ngFor="let paso of t.pasos"
+            [class.paso-activo]="paso.estado === 'EN_PROGRESO'"
+            [class.paso-clickable]="paso.estado === 'EN_PROGRESO'"
+            (click)="paso.estado === 'EN_PROGRESO' && abrirActividad(t.id, paso.nodoId)">
             <mat-icon [color]="colorEstadoPaso(paso.estado)" class="paso-icono">
               {{ icono(paso.estado) }}
             </mat-icon>
@@ -39,6 +42,7 @@
             <mat-chip [color]="colorEstadoPaso(paso.estado)" highlighted class="chip-estado">
               {{ paso.estado }}
             </mat-chip>
+            <mat-icon *ngIf="paso.estado === 'EN_PROGRESO'" class="icono-ir">arrow_forward</mat-icon>
           </div>
         </div>
       </mat-card-content>

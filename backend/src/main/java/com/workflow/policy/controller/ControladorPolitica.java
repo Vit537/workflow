@@ -78,4 +78,13 @@ public class ControladorPolitica {
     servicioPolitica.eliminarPolitica(id);
     return ResponseEntity.noContent().build();
   }
+
+  // ── CU-11: búsqueda para asesor ────────────────────────────────────────
+
+  @GetMapping("/buscar")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
+  public ResponseEntity<List<RespuestaPoliticaResumen>> buscarPoliticas(
+      @RequestParam(required = false) String q) {
+    return ResponseEntity.ok(servicioPolitica.buscarPoliticasPublicadas(q));
+  }
 }

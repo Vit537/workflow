@@ -1,4 +1,5 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { TramiteService, RespuestaTramite } from '../../shared/services/tramite.service';
 import { WebsocketService } from '../../shared/services/websocket.service';
@@ -16,7 +17,8 @@ export class MonitorActividadesComponent implements OnInit, OnDestroy {
 
   constructor(
     private tramiteService: TramiteService,
-    private wsService: WebsocketService
+    private wsService: WebsocketService,
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -70,5 +72,9 @@ export class MonitorActividadesComponent implements OnInit, OnDestroy {
       BLOQUEADO: 'block',
     };
     return mapa[estado] ?? 'help_outline';
+  }
+
+  abrirActividad(tramiteId: string, nodoId: string): void {
+    this.router.navigate(['/workflow/tramites', tramiteId, 'pasos', nodoId]);
   }
 }

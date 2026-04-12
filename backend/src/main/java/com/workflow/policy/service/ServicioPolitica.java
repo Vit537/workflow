@@ -107,6 +107,19 @@ public class ServicioPolitica {
     politicaRepository.deleteById(id);
   }
 
+  // ── CU-11: búsqueda para asesor ────────────────────────────────────────
+
+  public List<RespuestaPoliticaResumen> buscarPoliticasPublicadas(String keyword) {
+    if (keyword == null || keyword.isBlank()) {
+      return listarPoliticasPorEstado(EstadoPolitica.PUBLICADA);
+    }
+    return politicaRepository
+        .findByNombreContainingIgnoreCaseAndEstado(keyword, EstadoPolitica.PUBLICADA)
+        .stream()
+        .map(this::mapearAResumen)
+        .collect(Collectors.toList());
+  }
+
   private Politica buscarPorId(String id) {
     return politicaRepository.findById(id)
         .orElseThrow(() -> new RuntimeException("Política no encontrada con id: " + id));

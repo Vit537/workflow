@@ -57,4 +57,10 @@ export class PoliticaService {
   eliminarPolitica(id: string): Observable<void> {
     return this.http.delete<void>(`${this.urlApi}/${id}`);
   }
+
+  buscarPoliticasPublicadas(q?: string): Observable<PoliticaResumen[]> {
+    let params = new HttpParams();
+    if (q) params = params.set('q', q);
+    return this.http.get<PoliticaResumen[]>(`${this.urlApi}/buscar`, { params });
+  }
 }

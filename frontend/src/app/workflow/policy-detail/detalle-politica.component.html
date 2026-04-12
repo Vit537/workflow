@@ -1,0 +1,96 @@
+<div *ngIf="cargando" class="cargando-wrapper">
+  <mat-spinner diameter="48"></mat-spinner>
+  <p>Cargando política...</p>
+</div>
+
+<div *ngIf="!cargando && politica" class="detalle-container">
+
+  <!-- Cabecera -->
+  <div class="detalle-header">
+    <button mat-icon-button (click)="volver()" matTooltip="Volver">
+      <mat-icon>arrow_back</mat-icon>
+    </button>
+    <div class="header-info">
+      <h1>{{ politica.nombre }}</h1>
+      <p *ngIf="politica.descripcion">{{ politica.descripcion }}</p>
+    </div>
+    <span class="spacer"></span>
+    <button mat-raised-button color="primary" (click)="iniciarTramite()"
+      [disabled]="iniciandoTramite">
+      <mat-spinner *ngIf="iniciandoTramite" diameter="18" class="spinner-inline"></mat-spinner>
+      <mat-icon *ngIf="!iniciandoTramite">play_arrow</mat-icon>
+      {{ iniciandoTramite ? 'Iniciando...' : 'Iniciar Trámite' }}
+    </button>
+  </div>
+
+  <!-- Pasos del flujo -->
+  <mat-card class="seccion-card">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>account_tree</mat-icon> Pasos del flujo
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="pasos-flujo">
+        <div *ngFor="let carril of politica.carriles" class="carril-grupo">
+          <div class="carril-nombre">
+            <mat-icon>table_rows</mat-icon>
+            {{ carril.nombre }}
+          </div>
+          <div *ngFor="let nodo of politica.nodos | nodosPorCarril: carril.id" class="nodo-item"
+            [class.nodo-expandido]="nodoExpandido === nodo.id">
+            <div class="nodo-header" (click)="toggleNodo(nodo.id)">
+              <mat-icon [class]="'icono-nodo icono-' + nodo.tipo.toLowerCase()">
+                {{ nodo.tipo === 'INICIO' ? 'play_circle' :
+                   nodo.tipo === 'FIN' ? 'stop_circle' :
+                   nodo.tipo === 'DECISION' ? 'call_split' :
+                   nodo.tipo === 'COMPUERTA_PARALELA' ? 'device_hub' :
+                   nodo.tipo === 'COMPUERTA_UNION' ? 'merge_type' : 'task' }}
+              </mat-icon>
+              <span class="nodo-etiqueta">{{ nodo.etiqueta }}</span>
+              <mat-chip class="chip-flujo" *ngIf="nodo.tipoFlujo">{{ nodo.tipoFlujo }}</mat-chip>
+              <mat-icon class="expand-icon">
+                {{ nodoExpandido === nodo.id ? 'expand_less' : 'expand_more' }}
+              </mat-icon>
+            </div>
+
+            <!-- Detalle del nodo expandido -->
+            <div class="nodo-detalle" *ngIf="nodoExpandido === nodo.id && nodo.formulario">
+              <mat-divider></mat-divider>
+              <div class="formulario-info">
+                <h4>{{ nodo.formulario.titulo }}</h4>
+                <p *ngIf="nodo.formulario.instrucciones" class="instrucciones">
+                  {{ nodo.formulario.instrucciones }}
+                </p>
+
+                <div *ngIf="nodo.formulario.requisitos?.length" class="requisitos">
+                  <strong>Documentos requeridos:</strong>
+                  <ul>
+                    <li *ngFor="let r of nodo.formulario.requisitos">{{ r }}</li>
+                  </ul>
+                </div>
+
+                <div *ngIf="nodo.formulario.campos?.length" class="campos-tabla">
+                  <strong>Campos del formulario:</strong>
+                  <table class="tabla-campos">
+                    <thead>
+                      <tr><th>Campo</th><th>Tipo</th><th>Requerido</th></tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let c of nodo.formulario.campos">
+                        <td>{{ c.etiqueta }}</td>
+                        <td>{{ c.tipoCampo }}</td>
+                        <td>{{ c.requerido ? 'Sí' : 'No' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+</div>

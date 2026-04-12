@@ -1,5 +1,26 @@
 <mat-toolbar color="primary" class="app-navbar" *ngIf="mostrarNavbar">
   <span class="navbar-brand">Workflow Engine</span>
+
+  <!-- Links de navegación según rol -->
+  <nav class="navbar-links" *ngIf="usuario">
+    <a mat-button routerLink="/workflow/monitor" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ASESOR'">
+      <mat-icon>monitor_heart</mat-icon> Monitor
+    </a>
+    <a mat-button routerLink="/workflow/politicas" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ASESOR'">
+      <mat-icon>policy</mat-icon> Políticas
+    </a>
+    <a mat-button routerLink="/policy" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ADMIN'">
+      <mat-icon>account_tree</mat-icon> Políticas
+    </a>
+    <a mat-button routerLink="/iam/usuarios" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ADMIN'">
+      <mat-icon>people</mat-icon> Usuarios
+    </a>
+  </nav>
+
   <span class="navbar-spacer"></span>
   <span class="navbar-user" *ngIf="usuario">
     <mat-icon>account_circle</mat-icon>
