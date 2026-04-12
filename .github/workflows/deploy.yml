@@ -134,7 +134,7 @@ jobs:
   deploy-frontend:
     name: Build & Deploy Frontend
     runs-on: ubuntu-latest
-    needs: [deploy-backend, deploy-ai-service]
+    needs: [deploy-backend]
     steps:
       - name: Checkout ciclo-3
         uses: actions/checkout@v4
@@ -153,11 +153,8 @@ jobs:
         working-directory: frontend
         run: |
           BACKEND_URL="${{ needs.deploy-backend.outputs.backend_url }}"
-          AI_URL="${{ needs.deploy-ai-service.outputs.ai_url }}"
           find src/app/shared/services -name "*.ts" \
             -exec sed -i "s|http://localhost:8080|$BACKEND_URL|g" {} \;
-          find src/app/shared/services -name "*.ts" \
-            -exec sed -i "s|http://localhost:8001|$AI_URL|g" {} \;
 
       - name: Build frontend image
         working-directory: frontend
