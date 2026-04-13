@@ -179,21 +179,13 @@ jobs:
             --max-instances 3 \
             --project ${{ env.PROJECT_ID }}
 
-      - name: Update backend CORS with real frontend URL
+      - name: Deploy summary
         run: |
-          FRONTEND_URL=$(gcloud run services describe angular-frontend \
-            --region ${{ env.REGION }} \
-            --format='value(status.url)' \
-            --project ${{ env.PROJECT_ID }})
-          gcloud run services update spring-service \
-            --region ${{ env.REGION }} \
-            --update-env-vars "CORS_ORIGINS=$FRONTEND_URL" \
-            --project ${{ env.PROJECT_ID }}
           echo ""
           echo "=========================================="
           echo "   DEPLOY COMPLETO"
           echo "=========================================="
-          echo "  Frontend:   $FRONTEND_URL"
+          echo "  Frontend:   ${{ secrets.FRONTEND_URL }}"
           echo "  Backend:    ${{ needs.deploy-backend.outputs.backend_url }}"
           echo "=========================================="
 
