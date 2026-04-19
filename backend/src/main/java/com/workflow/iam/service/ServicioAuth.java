@@ -5,8 +5,6 @@ import com.workflow.iam.dto.RespuestaAuth;
 import com.workflow.iam.dto.SolicitudLogin;
 import com.workflow.iam.model.User;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -23,29 +21,22 @@ public class ServicioAuth {
   }
 
   public RespuestaAuth iniciarSesion(SolicitudLogin solicitud) {
-    try {
-      Authentication autenticacion = authenticationManager.authenticate(
-          new UsernamePasswordAuthenticationToken(
-              solicitud.getCorreo(),
-              solicitud.getContrasena()
-          )
-      );
+    Authentication autenticacion = authenticationManager.authenticate(
+        new UsernamePasswordAuthenticationToken(
+            solicitud.getCorreo(),
+            solicitud.getContrasena()
+        )
+    );
 
-      User usuario = (User) autenticacion.getPrincipal();
-      String token = jwtUtil.generarToken(usuario, usuario.getRol().name());
+    User usuario = (User) autenticacion.getPrincipal();
+    String token = jwtUtil.generarToken(usuario, usuario.getRol().name());
 
-      return RespuestaAuth.builder()
-          .token(token)
-          .id(usuario.getId())
-          .nombre(usuario.getNombre())
-          .correo(usuario.getCorreo())
-          .rol(usuario.getRol())
-          .build();
-
-    } catch (DisabledException e) {
-      throw new RuntimeException("La cuenta del usuario está desactivada");
-    } catch (BadCredentialsException e) {
-      throw new RuntimeException("Credenciales incorrectas");
-    }
+    return RespuestaAuth.builder()
+        .token(token)
+        .id(usuario.getId())
+        .nombre(usuario.getNombre())
+        .correo(usuario.getCorreo())
+        .rol(usuario.getRol())
+        .build();
   }
 }

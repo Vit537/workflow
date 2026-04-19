@@ -21,6 +21,13 @@ export interface Carril {
   id: string;
   nombre: string;
   orden: number;
+  /** true = columna (label arriba) | false/undefined = fila (label al lado) */
+  horizontal?: boolean;
+  /** Geometría persistida del swimlane */
+  posX?: number;
+  posY?: number;
+  ancho?: number;
+  alto?: number;
 }
 
 export interface Nodo {

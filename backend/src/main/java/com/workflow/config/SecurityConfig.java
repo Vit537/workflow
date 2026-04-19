@@ -1,5 +1,6 @@
 package com.workflow.config;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,6 +50,19 @@ public class SecurityConfig {
             .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/ws/**").permitAll()
             .anyRequest().authenticated())
+        .exceptionHandling(ex -> ex
+            .authenticationEntryPoint((request, response, authException) -> {
+              response.setContentType("application/json;charset=UTF-8");
+              response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+              response.getWriter().write(
+                  "{\"estado\":401,\"mensaje\":\"Credenciales incorrectas o token inválido\"}");
+            })
+            .accessDeniedHandler((request, response, accessDeniedException) -> {
+              response.setContentType("application/json;charset=UTF-8");
+              response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+              response.getWriter().write(
+                  "{\"estado\":403,\"mensaje\":\"No tiene permisos para acceder a este recurso\"}");
+            }))
         .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
     return http.build();

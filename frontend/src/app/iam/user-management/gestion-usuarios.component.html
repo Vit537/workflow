@@ -65,6 +65,15 @@
             >
               <mat-icon>person_off</mat-icon>
             </button>
+            <button
+              mat-icon-button
+              color="accent"
+              (click)="activarUsuario(usuario)"
+              [disabled]="usuario.activo"
+              matTooltip="Reactivar usuario"
+            >
+              <mat-icon>person</mat-icon>
+            </button>
           </td>
         </ng-container>
 
@@ -79,6 +88,9 @@
   </mat-card>
 
 </div>
+
+<!-- Overlay -->
+<div class="panel-overlay" *ngIf="panelAbierto" (click)="cerrarPanel()"></div>
 
 <!-- Panel lateral de creación/edición -->
 <div class="panel-lateral" *ngIf="panelAbierto">

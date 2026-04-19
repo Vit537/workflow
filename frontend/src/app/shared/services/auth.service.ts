@@ -44,8 +44,14 @@ export class AuthService {
     if (!token) return false;
     try {
       const decodificado: any = jwtDecode(token);
-      return decodificado.exp * 1000 > Date.now();
+      if (decodificado.exp * 1000 > Date.now()) return true;
+      // Token expirado — limpiarlo del storage
+      localStorage.removeItem(this.CLAVE_TOKEN);
+      this.usuarioActualSubject.next(null);
+      return false;
     } catch {
+      localStorage.removeItem(this.CLAVE_TOKEN);
+      this.usuarioActualSubject.next(null);
       return false;
     }
   }
@@ -65,7 +71,7 @@ export class AuthService {
       const decodificado: any = jwtDecode(token);
       if (decodificado.exp * 1000 < Date.now()) return null;
       return {
-        id: decodificado.sub,
+        id: decodificado.id ?? decodificado.sub,
         correo: decodificado.sub,
         nombre: decodificado.nombre ?? '',
         rol: decodificado.rol,

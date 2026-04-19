@@ -43,4 +43,8 @@ export class UsuarioService {
   desactivarUsuario(id: string): Observable<void> {
     return this.http.patch<void>(`${this.urlApi}/${id}/desactivar`, {});
   }
+
+  activarUsuario(id: string): Observable<void> {
+    return this.http.patch<void>(`${this.urlApi}/${id}/activar`, {});
+  }
 }

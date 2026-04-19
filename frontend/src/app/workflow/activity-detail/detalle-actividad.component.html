@@ -31,7 +31,7 @@
     <mat-card-content>
       <p *ngIf="formulario.instrucciones" class="instrucciones">{{ formulario.instrucciones }}</p>
 
-      <div *ngIf="formulario.requisitos?.length" class="requisitos">
+      <div *ngIf="formulario.requisitos.length" class="requisitos">
         <strong>Documentos que debe presentar el cliente:</strong>
         <ul>
           <li *ngFor="let r of formulario.requisitos">{{ r }}</li>

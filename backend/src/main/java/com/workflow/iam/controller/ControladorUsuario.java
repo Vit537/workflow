@@ -56,4 +56,11 @@ public class ControladorUsuario {
     servicioUsuario.desactivarUsuario(id);
     return ResponseEntity.noContent().build();
   }
+
+  @PatchMapping("/{id}/activar")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<Void> activarUsuario(@PathVariable String id) {
+    servicioUsuario.activarUsuario(id);
+    return ResponseEntity.noContent().build();
+  }
 }

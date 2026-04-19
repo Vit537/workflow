@@ -61,10 +61,10 @@
         <ng-container matColumnDef="acciones">
           <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
           <mat-cell *matCellDef="let p">
-            <button mat-icon-button color="primary" matTooltip="Editar diagrama"
-              (click)="abrirEditor(p.id)"
-              [disabled]="p.estado === 'PUBLICADA'">
-              <mat-icon>edit</mat-icon>
+            <button mat-icon-button color="primary"
+              [matTooltip]="p.estado === 'PUBLICADA' ? 'Ver diagrama' : 'Editar diagrama'"
+              (click)="abrirEditor(p.id)">
+              <mat-icon>{{ p.estado === 'PUBLICADA' ? 'visibility' : 'edit' }}</mat-icon>
             </button>
             <button mat-icon-button color="warn" matTooltip="Eliminar"
               (click)="eliminarPolitica(p.id)"

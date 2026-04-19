@@ -5,6 +5,7 @@ import {
   ElementRef,
   ViewChild,
   ChangeDetectorRef,
+  HostListener,
 } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -45,10 +46,16 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
 
   // Panel: agregar carril
   panelCarrilAbierto = false;
+  /** Carril que se está editando (null = creando uno nuevo) */
+  carrilEditando: Carril | null = null;
   formularioCarril!: FormGroup;
 
   // CU-07: publicar
   publicando = false;
+  panelPublicarAbierto = false;
+  erroresValidacion: string[] = [];
+  advertenciasValidacion: string[] = [];
+  validacionLimpia = false;
 
   // CU-08: panel IA
   panelIaAbierto = false;
@@ -76,6 +83,43 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   private grafo!: Graph;
   private celdaPorNodoId = new Map<string, Cell>();
   private celdaPorCarrilId = new Map<string, Cell>();
+  /** Guard para evitar recursión infinita al re-parentar nodos entre carriles */
+  private reParentando = false;
+
+  /** Indica si hay al menos una celda seleccionada (nodo o arista) */
+  haySeleccion = false;
+
+  /** Auto-guardado */
+  autoGuardando = false;
+  /** 'guardado' | 'pendiente' | null */
+  estadoGuardado: 'guardado' | 'pendiente' | null = null;
+  private estadoGuardadoTimer: ReturnType<typeof setTimeout> | null = null;
+  private autoGuardadoTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Evita disparar auto-guardado mientras se carga el diagrama inicial */
+  private diagramaCargado = false;
+
+  // ── Teclado: Delete / Backspace / Ctrl+S ──────────────────────────────
+  @HostListener('document:keydown', ['$event'])
+  onKeyDown(e: KeyboardEvent): void {
+    // Ctrl+S → guardar manualmente
+    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+      e.preventDefault();
+      this.guardarDiagrama();
+      return;
+    }
+    // Delete / Backspace → eliminar selección (fuera de inputs)
+    if ((e.key === 'Delete' || e.key === 'Backspace') &&
+        !(e.target instanceof HTMLInputElement) &&
+        !(e.target instanceof HTMLTextAreaElement)) {
+      this.eliminarSeleccion();
+    }
+  }
+
+  private programarAutoGuardado(): void {
+    if (this.autoGuardadoTimer) clearTimeout(this.autoGuardadoTimer);
+    this.estadoGuardado = 'pendiente';
+    this.autoGuardadoTimer = setTimeout(() => this.guardarDiagrama(true), 2500);
+  }
 
   readonly tiposNodo: { tipo: TipoNodo; etiqueta: string; icono: string }[] = [
     { tipo: 'INICIO', etiqueta: 'Inicio', icono: 'play_circle' },
@@ -133,6 +177,7 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.formularioCarril = this.fb.group({
       nombre: ['', [Validators.required, Validators.minLength(2)]],
+      orientacion: ['columna'],
     });
 
     this.formularioFlujo = this.fb.group({
@@ -176,6 +221,8 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    if (this.autoGuardadoTimer) clearTimeout(this.autoGuardadoTimer);
+    if (this.estadoGuardadoTimer) clearTimeout(this.estadoGuardadoTimer);
     if (this.grafo) {
       this.grafo.destroy();
     }
@@ -193,9 +240,29 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
     this.grafo.setTooltips(true);
     this.grafo.setConnectable(true);
     this.grafo.setEnabled(this.politica?.estado !== 'PUBLICADA');
+    // Evitar que maxGraph auto-expanda los carriles cuando un nodo se arrastra fuera de sus bordes
+    this.grafo.autoExtend = false;
+    // Evitar que maxGraph estire el carril padre cuando se mueve un hijo fuera
+    this.grafo.extendParentsOnMove = false;
 
     const edgeStyle = this.grafo.getStylesheet().getDefaultEdgeStyle();
     edgeStyle.rounded = true;
+
+    // Actualizar haySeleccion cuando cambie la selección
+    this.grafo.getSelectionModel().addListener(InternalEvent.CHANGE, () => {
+      this.haySeleccion = this.grafo.getSelectionCount() > 0;
+      this.cdr.detectChanges();
+    });
+
+    // Auto-guardado + re-parentar nodos al soltar entre carriles
+    this.grafo.model.addListener(InternalEvent.CHANGE, () => {
+      if (!this.diagramaCargado) return;
+      if (this.politica?.estado === 'PUBLICADA') return;
+      if (!this.reParentando) {
+        requestAnimationFrame(() => this.sincronizarParentsDenodos());
+      }
+      this.programarAutoGuardado();
+    });
 
     // Detectar selección de nodo
     this.grafo.addListener(InternalEvent.CLICK, (_sender: any, evt: any) => {
@@ -217,27 +284,123 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
     } else {
       this.crearEstructuraInicial();
     }
+    // Habilitar auto-guardado DESPUÉS de cargar para no guardarlo al inicializar
+    this.diagramaCargado = true;
   }
 
   private crearEstructuraInicial(): void {
     const padre = this.grafo.getDefaultParent();
     this.grafo.batchUpdate(() => {
       const carrilId = this.generarId();
+      // Default: columna (horizontal=true → label arriba, estándar en diagramas de actividad)
       const swimlane = this.grafo.insertVertex(
         padre,
         carrilId,
         'Área Principal',
         0,
         0,
-        800,
         200,
-        { shape: 'swimlane', horizontal: false, startSize: 30 }
+        600,
+        { shape: 'swimlane', horizontal: true, startSize: 30 }
       );
       this.celdaPorCarrilId.set(carrilId, swimlane);
       if (this.politica) {
-        this.politica.carriles = [{ id: carrilId, nombre: 'Área Principal', orden: 0 }];
+        this.politica.carriles = [{ id: carrilId, nombre: 'Área Principal', orden: 0, horizontal: true }];
       }
     });
+  }
+
+  /**
+   * Re-parentar nodos que hayan sido arrastrados fuera de los límites de su carril.
+   * Se ejecuta vía requestAnimationFrame después de cada cambio en el modelo del grafo.
+   * Esto asegura que el parent en maxGraph siempre coincida con el carril donde el nodo
+   * visualmente está, y que las coordenadas sean relativas al nuevo parent.
+   */
+  private sincronizarParentsDenodos(): void {
+    if (this.reParentando || !this.politica) return;
+
+    const startSize = 30;
+    const defaultParentId = this.grafo.getDefaultParent().getId();
+
+    const cambios: Array<{
+      celda: Cell;
+      nuevoParent: Cell;
+      nuevoCarrilId: string;
+      newX: number;
+      newY: number;
+    }> = [];
+
+    this.celdaPorNodoId.forEach((celda) => {
+      if (!celda.geometry || !celda.parent) return;
+      const parentId = celda.parent.getId();
+      if (!parentId) return;
+
+      const enSwimlane = this.celdaPorCarrilId.has(parentId);
+      const enDefaultParent = parentId === defaultParentId;
+
+      if (!enSwimlane && !enDefaultParent) return;
+
+      let absX: number;
+      let absY: number;
+
+      if (enSwimlane) {
+        // El nodo está dentro de un swimlane → coords relativas al área de contenido
+        const parentGeo = celda.parent.geometry!;
+        absX = parentGeo.x + celda.geometry.x;
+        absY = parentGeo.y + startSize + celda.geometry.y;
+      } else {
+        // El nodo está en el parent raíz → maxGraph lo soltó con coords absolutas
+        absX = celda.geometry.x;
+        absY = celda.geometry.y;
+      }
+
+      const absCX = absX + celda.geometry.width / 2;
+      const absCY = absY + celda.geometry.height / 2;
+
+      // Buscar el carril al que pertenece visualmente
+      for (const [carrilId, swimlane] of this.celdaPorCarrilId) {
+        if (carrilId === parentId) continue; // ya está en el carril correcto
+        const sg = swimlane.geometry;
+        if (!sg) continue;
+
+        if (
+          absCX >= sg.x && absCX <= sg.x + sg.width &&
+          absCY >= sg.y && absCY <= sg.y + sg.height
+        ) {
+          cambios.push({
+            celda,
+            nuevoParent: swimlane,
+            nuevoCarrilId: carrilId,
+            newX: absX - sg.x,
+            newY: absY - sg.y - startSize,
+          });
+          break;
+        }
+      }
+    });
+
+    if (cambios.length === 0) return;
+
+    this.reParentando = true;
+    this.grafo.batchUpdate(() => {
+      cambios.forEach(({ celda, nuevoParent, nuevoCarrilId, newX, newY }) => {
+        // 1. Cambiar parent en el modelo de maxGraph
+        const idx = nuevoParent.getChildCount();
+        this.grafo.model.add(nuevoParent, celda, idx);
+        // 2. Fijar la geometría relativa al área de contenido del nuevo carril
+        const newGeo = celda.geometry!.clone();
+        newGeo.x = newX;
+        newGeo.y = newY;
+        this.grafo.model.setGeometry(celda, newGeo);
+        // 3. Actualizar el modelo de datos local
+        const nodoId = celda.getId();
+        if (nodoId) {
+          const nodo = this.politica!.nodos.find((n) => n.id === nodoId);
+          if (nodo) nodo.carrilId = nuevoCarrilId;
+        }
+      });
+    });
+    this.reParentando = false;
   }
 
   private cargarDiagramaExistente(): void {
@@ -246,15 +409,21 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
 
     this.grafo.batchUpdate(() => {
       this.politica!.carriles.forEach((carril, idx) => {
+        const esColumna = carril.horizontal === true;
+        // Usar posición guardada si existe; si no, calcular por índice (primera vez)
+        const x     = carril.posX  ?? (esColumna ? idx * 200 : 0);
+        const y     = carril.posY  ?? (esColumna ? 0 : idx * 200);
+        const ancho = carril.ancho ?? (esColumna ? 200 : 800);
+        const alto  = carril.alto  ?? (esColumna ? 600 : 200);
         const swimlane = this.grafo.insertVertex(
           padre,
           carril.id,
           carril.nombre,
-          0,
-          idx * 200,
-          800,
-          200,
-          { shape: 'swimlane', horizontal: false, startSize: 30 }
+          x,
+          y,
+          ancho,
+          alto,
+          { shape: 'swimlane', horizontal: esColumna, startSize: 30 }
         );
         this.celdaPorCarrilId.set(carril.id, swimlane);
       });
@@ -339,27 +508,151 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   agregarCarril(): void {
     if (this.formularioCarril.invalid || !this.politica) return;
     const nombre: string = this.formularioCarril.value.nombre;
+    const esColumna: boolean = this.formularioCarril.value.orientacion === 'columna';
+
+    // ── MODO EDICIÓN: actualizar carril existente ──────────────────────
+    if (this.carrilEditando) {
+      const carril = this.carrilEditando;
+      carril.nombre = nombre;
+      const orientacionCambio = carril.horizontal !== esColumna;
+      carril.horizontal = esColumna;
+
+      const celdaCarril = this.celdaPorCarrilId.get(carril.id);
+      if (celdaCarril) {
+        this.grafo.batchUpdate(() => {
+          // Actualizar etiqueta
+          this.grafo.model.setValue(celdaCarril, nombre);
+          // Si cambió la orientación, redimensionar y aplicar nuevo estilo
+          if (orientacionCambio) {
+            const geo = celdaCarril.geometry!.clone();
+            // Intercambiar ancho/alto y recalcular si son los valores por defecto
+            const defAncho = esColumna ? 200 : 800;
+            const defAlto  = esColumna ? 600 : 200;
+            geo.width  = defAncho;
+            geo.height = defAlto;
+            this.grafo.model.setGeometry(celdaCarril, geo);
+            this.grafo.model.setStyle(celdaCarril, {
+              shape: 'swimlane',
+              horizontal: esColumna,
+              startSize: 30,
+            });
+          }
+        });
+      }
+
+      this.carrilEditando = null;
+      this.formularioCarril.reset({ orientacion: 'columna' });
+      this.panelCarrilAbierto = false;
+      this.programarAutoGuardado();
+      return;
+    }
+
+    // ── MODO CREACIÓN ──────────────────────────────────────────────────
     const orden = this.politica.carriles.length;
     const carrilId = this.generarId();
     const padre = this.grafo.getDefaultParent();
+
+    const x     = esColumna ? orden * 200 : 0;
+    const y     = esColumna ? 0 : orden * 200;
+    const ancho = esColumna ? 200 : 800;
+    const alto  = esColumna ? 600 : 200;
 
     this.grafo.batchUpdate(() => {
       const swimlane = this.grafo.insertVertex(
         padre,
         carrilId,
         nombre,
-        0,
-        orden * 200,
-        800,
-        200,
-        { shape: 'swimlane', horizontal: false, startSize: 30 }
+        x,
+        y,
+        ancho,
+        alto,
+        { shape: 'swimlane', horizontal: esColumna, startSize: 30 }
       );
       this.celdaPorCarrilId.set(carrilId, swimlane);
     });
 
-    this.politica.carriles.push({ id: carrilId, nombre, orden });
-    this.formularioCarril.reset();
+    this.politica.carriles.push({ id: carrilId, nombre, orden, horizontal: esColumna });
+    this.formularioCarril.reset({ orientacion: 'columna' });
     this.panelCarrilAbierto = false;
+  }
+
+  /** Abre el dialog de carril en modo edición */
+  editarCarril(carril: Carril): void {
+    if (this.politica?.estado === 'PUBLICADA') return;
+    this.carrilEditando = carril;
+    this.formularioCarril.setValue({
+      nombre: carril.nombre,
+      orientacion: carril.horizontal === true ? 'columna' : 'fila',
+    });
+    this.panelCarrilAbierto = true;
+  }
+
+  // ── CU-04: eliminar elementos seleccionados ───────────────────────────
+
+  eliminarSeleccion(): void {
+    if (!this.grafo || this.politica?.estado === 'PUBLICADA') return;
+    const celdas = this.grafo.getSelectionCells();
+    if (!celdas || celdas.length === 0) return;
+
+    // Recopilar qué limpiar ANTES de tocar el grafo
+    const idsCarrilesAEliminar: string[] = [];
+    const idsNodosAEliminar: string[] = [];
+
+    celdas.forEach((celda) => {
+      const id = celda.getId();
+      if (!id || !celda.isVertex()) return;
+
+      if (this.celdaPorCarrilId.has(id)) {
+        idsCarrilesAEliminar.push(id);
+        // Nodos hijos del carril también
+        (this.politica?.nodos ?? [])
+          .filter((n) => n.carrilId === id)
+          .forEach((n) => idsNodosAEliminar.push(n.id));
+      } else {
+        idsNodosAEliminar.push(id);
+      }
+    });
+
+    // 1. Eliminar físicamente del grafo
+    this.grafo.batchUpdate(() => {
+      this.grafo.removeCells(celdas);
+    });
+
+    // 2. Limpiar los Maps y el modelo local DESPUÉS del batchUpdate
+    idsCarrilesAEliminar.forEach((id) => this.celdaPorCarrilId.delete(id));
+    idsNodosAEliminar.forEach((id) => this.celdaPorNodoId.delete(id));
+
+    if (this.politica) {
+      const setCarriles = new Set(idsCarrilesAEliminar);
+      const setNodos = new Set(idsNodosAEliminar);
+      this.politica.carriles = this.politica.carriles.filter((c) => !setCarriles.has(c.id));
+      this.politica.nodos = this.politica.nodos.filter((n) => !setNodos.has(n.id));
+    }
+
+    // Si el nodo seleccionado fue eliminado, cerrar el panel de propiedades
+    if (this.nodoSeleccionado &&
+        !this.celdaPorNodoId.has(this.nodoSeleccionado.id)) {
+      this.nodoSeleccionado = null;
+    }
+
+    const hayCarrilesEliminados = idsCarrilesAEliminar.length > 0;
+    this.haySeleccion = false;
+
+    // 3. Forzar re-render de Angular (maxGraph corre fuera de la zona)
+    this.cdr.detectChanges();
+
+    // 4. Persistir inmediatamente
+    if (hayCarrilesEliminados) {
+      // Carril eliminado: guardar de forma NO silenciosa para que la respuesta
+      // del backend reemplace this.politica completo (evita carriles fantasma en la paleta
+      // y elimina condición de carrera con auto-guardados en vuelo).
+      if (this.autoGuardadoTimer) { clearTimeout(this.autoGuardadoTimer); this.autoGuardadoTimer = null; }
+      this.guardarDiagrama(false);
+    } else {
+      this.programarAutoGuardado();
+    }
+
+    this.snackBar.open('Elemento(s) eliminado(s).', 'Cerrar', { duration: 2000 });
   }
 
   // ── CU-05: Tipo de flujo ───────────────────────────────────────────────
@@ -388,10 +681,25 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
 
   guardarTipoFlujo(): void {
     if (!this.nodoSeleccionado || this.formularioFlujo.invalid) return;
-    this.nodoSeleccionado.tipoFlujo = this.formularioFlujo.value.tipoFlujo;
-    this.snackBar.open('Tipo de flujo actualizado. Recuerda guardar el diagrama.', 'Cerrar', {
-      duration: 2500,
-    });
+    const tipoFlujo = this.formularioFlujo.value.tipoFlujo;
+
+    // Validar: CONDICIONAL requiere al menos 2 condiciones
+    if (tipoFlujo === 'CONDICIONAL') {
+      const condiciones = this.nodoSeleccionado.condiciones ?? [];
+      if (condiciones.length < 2) {
+        this.snackBar.open(
+          'Un nodo CONDICIONAL requiere al menos 2 condiciones de ramificación.',
+          'Cerrar',
+          { duration: 3500 }
+        );
+        return;
+      }
+    }
+
+    this.nodoSeleccionado.tipoFlujo = tipoFlujo;
+    // Auto-guardar tras aplicar el tipo de flujo
+    this.programarAutoGuardado();
+    this.snackBar.open('Tipo de flujo aplicado y guardando...', 'Cerrar', { duration: 2000 });
   }
 
   agregarCondicion(): void {
@@ -480,18 +788,74 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
 
   // ── Guardar todo ───────────────────────────────────────────────────────
 
-  guardarDiagrama(): void {
+  guardarDiagrama(silencioso = false): void {
     if (!this.politica) return;
-    this.guardando = true;
+    // Cancelar auto-guardado pendiente si se está guardando manualmente
+    if (this.autoGuardadoTimer) { clearTimeout(this.autoGuardadoTimer); this.autoGuardadoTimer = null; }
+    if (silencioso) {
+      this.autoGuardando = true;
+    } else {
+      this.guardando = true;
+    }
 
+    // 1. Sincronizar posiciones y tamaños de CARRILES
+    this.politica.carriles.forEach((carril) => {
+      const celdaCarril = this.celdaPorCarrilId.get(carril.id);
+      if (celdaCarril?.geometry) {
+        carril.posX  = celdaCarril.geometry.x;
+        carril.posY  = celdaCarril.geometry.y;
+        carril.ancho = celdaCarril.geometry.width;
+        carril.alto  = celdaCarril.geometry.height;
+      }
+    });
+
+    // 1b. Eliminar carriles que ya no existen en los Maps (defensa ante borrado)
+    this.politica.carriles = this.politica.carriles.filter(
+      (c) => this.celdaPorCarrilId.has(c.id)
+    );
+
+    // 2. Sincronizar posiciones de nodos y carrilId (el parent ya fue actualizado en tiempo real por sincronizarParentsDenodos)
     this.politica.nodos.forEach((nodo) => {
       const celda = this.celdaPorNodoId.get(nodo.id);
-      if (celda?.geometry) {
-        nodo.posX = celda.geometry.x;
-        nodo.posY = celda.geometry.y;
-        nodo.ancho = celda.geometry.width;
-        nodo.alto = celda.geometry.height;
+      if (!celda?.geometry) return;
+      nodo.posX  = celda.geometry.x;
+      nodo.posY  = celda.geometry.y;
+      nodo.ancho = celda.geometry.width;
+      nodo.alto  = celda.geometry.height;
+      // Leer el carrilId del parent real en el modelo (ya sincronizado por sincronizarParentsDenodos)
+      const parentId = celda.parent?.getId();
+      if (parentId && this.celdaPorCarrilId.has(parentId)) {
+        nodo.carrilId = parentId;
       }
+    });
+
+    // 3. Eliminar nodos que hayan sido borrados del grafo (Delete/Backspace)
+    this.politica.nodos = this.politica.nodos.filter(
+      (nodo) => this.celdaPorNodoId.has(nodo.id)
+    );
+
+    // 4. Recopilar TODAS las aristas recursivamente (incluye las dentro de swimlanes)
+    const recopilarAristas = (celda: Cell): Cell[] => {
+      const aristas: Cell[] = [];
+      (celda.children ?? []).forEach((hijo) => {
+        if (hijo.isEdge() && hijo.source && hijo.target) {
+          aristas.push(hijo);
+        }
+        aristas.push(...recopilarAristas(hijo));
+      });
+      return aristas;
+    };
+    const padre = this.grafo.getDefaultParent();
+    const todasLasAristas = recopilarAristas(padre);
+    this.politica.conexiones = todasLasAristas.map((c) => {
+      const existente = this.politica!.conexiones.find((cx) => cx.id === c.getId());
+      return {
+        id: c.getId() ?? this.generarId(),
+        nodoOrigenId: c.source!.getId()!,
+        nodoDestinoId: c.target!.getId()!,
+        etiqueta: existente?.etiqueta ?? (typeof c.value === 'string' ? c.value : ''),
+        condicion: existente?.condicion,
+      };
     });
 
     const solicitud: SolicitudActualizarDiagrama = {
@@ -500,30 +864,117 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
       conexiones: this.politica.conexiones,
     };
 
+
     this.politicaService.actualizarDiagrama(this.politica.id, solicitud).subscribe({
       next: (p) => {
-        this.politica = p;
+        if (silencioso) {
+          // Auto-guardado silencioso: NO sobreescribir el estado local con la respuesta
+          // del servidor para evitar condición de carrera (el estado local es fuente de verdad).
+          // Solo sincronizar campos que controla exclusivamente el backend.
+          if (this.politica) {
+            this.politica.estado = p.estado;
+          }
+        } else {
+          // Guardado manual (Ctrl+S): sí sincronizamos completamente con el backend
+          this.politica = p;
+        }
+        // DEBUG TEMPORAL: ver qué devuelve el backend
+        console.log('[guardarDiagrama] respuesta del backend:',
+          JSON.stringify({ carriles: p.carriles?.map((c: any) => c.nombre) })
+        );
         this.guardando = false;
-        this.snackBar.open('Diagrama guardado', 'Cerrar', { duration: 2000 });
+        this.autoGuardando = false;
+        this.estadoGuardado = 'guardado';
+        // Ocultar el badge "Guardado" después de 3 segundos
+        if (this.estadoGuardadoTimer) clearTimeout(this.estadoGuardadoTimer);
+        this.estadoGuardadoTimer = setTimeout(() => {
+          this.estadoGuardado = null;
+          this.cdr.detectChanges();
+        }, 3000);
+        if (!silencioso) {
+          this.snackBar.open('Diagrama guardado', 'Cerrar', { duration: 2000 });
+        }
         this.publicarCambioColaborativo();
       },
       error: () => {
         this.guardando = false;
-        this.snackBar.open('Error al guardar el diagrama', 'Cerrar', { duration: 3000 });
+        this.autoGuardando = false;
+        this.estadoGuardado = null;
+        if (!silencioso) {
+          this.snackBar.open('Error al guardar el diagrama', 'Cerrar', { duration: 3000 });
+        }
       },
     });
   }
 
-  // ── CU-07: Publicar política ───────────────────────────────────────────
+  // ── CU-07: Validar y publicar política ─────────────────────────────────
+
+  private validarDiagramaParaPublicar(): { errores: string[]; advertencias: string[] } {
+    const errores: string[] = [];
+    const advertencias: string[] = [];
+    const nodos = this.politica?.nodos ?? [];
+    const conexiones = this.politica?.conexiones ?? [];
+
+    // Error: falta nodo INICIO
+    const tieneInicio = nodos.some((n) => n.tipo === 'INICIO');
+    if (!tieneInicio) errores.push('Falta un nodo de INICIO en el diagrama.');
+
+    // Error: falta nodo FIN
+    const tieneFin = nodos.some((n) => n.tipo === 'FIN');
+    if (!tieneFin) errores.push('Falta un nodo de FIN en el diagrama.');
+
+    // Error: nodos aislados (sin ninguna conexión)
+    const nodosConexion = new Set<string>();
+    conexiones.forEach((c) => {
+      nodosConexion.add(c.nodoOrigenId);
+      nodosConexion.add(c.nodoDestinoId);
+    });
+    const aislados = nodos.filter(
+      (n) => !nodosConexion.has(n.id) && nodos.length > 1
+    );
+    if (aislados.length > 0) {
+      aislados.forEach((n) =>
+        errores.push(`El nodo "${n.etiqueta}" está aislado (sin conexiones).`)
+      );
+    }
+
+    // Advertencia: nodos DECISION sin condiciones definidas
+    nodos
+      .filter((n) => n.tipoFlujo === 'CONDICIONAL' && (n.condiciones?.length ?? 0) < 2)
+      .forEach((n) =>
+        advertencias.push(
+          `El nodo "${n.etiqueta}" es CONDICIONAL pero tiene menos de 2 condiciones.`
+        )
+      );
+
+    // Advertencia: nodos ACTIVIDAD sin formulario
+    nodos
+      .filter((n) => n.tipo === 'ACTIVIDAD' && !n.formulario)
+      .forEach((n) =>
+        advertencias.push(`El nodo "${n.etiqueta}" es una ACTIVIDAD sin formulario asignado.`)
+      );
+
+    return { errores, advertencias };
+  }
+
+  abrirDialogoPublicar(): void {
+    if (!this.politica || this.politica.estado === 'PUBLICADA') return;
+    const { errores, advertencias } = this.validarDiagramaParaPublicar();
+    this.erroresValidacion = errores;
+    this.advertenciasValidacion = advertencias;
+    this.validacionLimpia = errores.length === 0;
+    this.panelPublicarAbierto = true;
+  }
 
   publicarPolitica(): void {
     if (!this.politica) return;
     this.publicando = true;
+    this.panelPublicarAbierto = false;
     this.politicaService.publicarPolitica(this.politica.id).subscribe({
       next: (p) => {
         this.politica = p;
         this.publicando = false;
-        this.snackBar.open('Política publicada correctamente', 'Cerrar', { duration: 3000 });
+        this.snackBar.open('¡Política publicada exitosamente!', 'Cerrar', { duration: 3000 });
       },
       error: (err) => {
         this.publicando = false;
@@ -591,7 +1042,10 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
       this.politica!.conexiones.push({ id: cx.id, nodoOrigenId: cx.nodoOrigenId, nodoDestinoId: cx.nodoDestinoId, etiqueta: cx.etiqueta ?? '' });
     });
 
-    // Re-renderizar el grafo
+    // Re-renderizar el grafo (destruir el anterior primero)
+    this.grafo?.destroy();
+    this.celdaPorNodoId.clear();
+    this.celdaPorCarrilId.clear();
     this.inicializarGrafo();
     this.panelIaAbierto = false;
   }
@@ -660,6 +1114,10 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
     if (payload.carriles) this.politica.carriles = payload.carriles;
     if (payload.nodos) this.politica.nodos = payload.nodos;
     if (payload.conexiones) this.politica.conexiones = payload.conexiones;
+    // Destruir el grafo anterior antes de re-renderizar
+    this.grafo?.destroy();
+    this.celdaPorNodoId.clear();
+    this.celdaPorCarrilId.clear();
     this.inicializarGrafo();
     this.snackBar.open('Diagrama actualizado por otro usuario', 'Cerrar', { duration: 2500 });
   }

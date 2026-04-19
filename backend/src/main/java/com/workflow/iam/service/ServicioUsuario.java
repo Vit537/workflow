@@ -48,6 +48,7 @@ public class ServicioUsuario {
         .build();
 
     User guardado = usuarioRepositorio.save(nuevoUsuario);
+    
     return mapearARespuesta(guardado);
   }
 
@@ -81,6 +82,12 @@ public class ServicioUsuario {
   public void desactivarUsuario(String id) {
     User usuario = buscarPorId(id);
     usuario.setActivo(false);
+    usuarioRepositorio.save(usuario);
+  }
+
+  public void activarUsuario(String id) {
+    User usuario = buscarPorId(id);
+    usuario.setActivo(true);
     usuarioRepositorio.save(usuario);
   }
 

@@ -30,6 +30,10 @@ public class JwtUtil {
   public String generarToken(UserDetails userDetails, String rol) {
     Map<String, Object> claims = new HashMap<>();
     claims.put("rol", rol);
+    if (userDetails instanceof com.workflow.iam.model.User u) {
+      claims.put("id", u.getId());
+      claims.put("nombre", u.getNombre());
+    }
     return Jwts.builder()
         .claims(claims)
         .subject(userDetails.getUsername())

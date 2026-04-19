@@ -1,6 +1,5 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { RespuestaUsuario } from '../../shared/models/user.model';
 import {
@@ -31,6 +30,7 @@ export class GestionUsuariosComponent implements OnInit {
     private fb: FormBuilder,
     private snackBar: MatSnackBar
   ) {}
+
 
   ngOnInit(): void {
     this.inicializarFormulario();
@@ -127,6 +127,18 @@ export class GestionUsuariosComponent implements OnInit {
         this.cargarUsuarios();
       },
       error: () => this.mostrarNotificacion('Error al desactivar el usuario', 'error'),
+    });
+  }
+
+  activarUsuario(usuario: RespuestaUsuario): void {
+    if (!confirm(`¿Reactivar al usuario ${usuario.nombre}? Podrá iniciar sesión nuevamente.`)) return;
+
+    this.servicioUsuario.activarUsuario(usuario.id).subscribe({
+      next: () => {
+        this.mostrarNotificacion('Usuario reactivado correctamente');
+        this.cargarUsuarios();
+      },
+      error: () => this.mostrarNotificacion('Error al reactivar el usuario', 'error'),
     });
   }
 

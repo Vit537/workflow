@@ -63,14 +63,14 @@
                   {{ nodo.formulario.instrucciones }}
                 </p>
 
-                <div *ngIf="nodo.formulario.requisitos?.length" class="requisitos">
+                <div *ngIf="nodo.formulario.requisitos.length" class="requisitos">
                   <strong>Documentos requeridos:</strong>
                   <ul>
                     <li *ngFor="let r of nodo.formulario.requisitos">{{ r }}</li>
                   </ul>
                 </div>
 
-                <div *ngIf="nodo.formulario.campos?.length" class="campos-tabla">
+                <div *ngIf="nodo.formulario.campos.length" class="campos-tabla">
                   <strong>Campos del formulario:</strong>
                   <table class="tabla-campos">
                     <thead>

@@ -22,7 +22,7 @@
     </button>
 
     <!-- CU-07: publicar -->
-    <button mat-raised-button color="accent" (click)="publicarPolitica()"
+    <button mat-raised-button color="accent" (click)="abrirDialogoPublicar()"
       [disabled]="publicando || politica?.estado === 'PUBLICADA'" class="btn-publicar"
       matTooltip="Publicar política">
       <mat-spinner *ngIf="publicando" diameter="18"></mat-spinner>
@@ -31,10 +31,26 @@
     </button>
 
     <button mat-raised-button (click)="guardarDiagrama()"
-      [disabled]="guardando || politica?.estado === 'PUBLICADA'" class="btn-guardar">
-      <mat-spinner *ngIf="guardando" diameter="18"></mat-spinner>
-      <mat-icon *ngIf="!guardando">save</mat-icon>
-      <span>{{ guardando ? 'Guardando...' : 'Guardar' }}</span>
+      [disabled]="guardando || autoGuardando || politica?.estado === 'PUBLICADA'" class="btn-guardar">
+      <mat-spinner *ngIf="guardando || autoGuardando" diameter="18"></mat-spinner>
+      <mat-icon *ngIf="!guardando && !autoGuardando">save</mat-icon>
+      <span>{{ guardando ? 'Guardando...' : autoGuardando ? 'Auto-guardando...' : 'Guardar' }}</span>
+    </button>
+
+    <!-- Indicador de estado de guardado -->
+    <span *ngIf="estadoGuardado === 'pendiente' || autoGuardando" class="auto-guardado-badge badge-pendiente">
+      <mat-spinner diameter="14" strokeWidth="2"></mat-spinner>&nbsp;Guardando...
+    </span>
+    <span *ngIf="estadoGuardado === 'guardado' && !autoGuardando" class="auto-guardado-badge badge-guardado">
+      <mat-icon style="font-size:16px;height:16px;width:16px">check_circle</mat-icon>&nbsp;Guardado
+    </span>
+
+    <!-- Botón eliminar selección (aparece solo cuando hay algo seleccionado) -->
+    <button mat-icon-button color="warn"
+      *ngIf="haySeleccion && politica?.estado !== 'PUBLICADA'"
+      (click)="eliminarSeleccion()"
+      matTooltip="Eliminar elemento(s) seleccionado(s) [Supr]">
+      <mat-icon>delete</mat-icon>
     </button>
   </mat-toolbar>
 
@@ -100,6 +116,19 @@
         <span>{{ item.etiqueta }}</span>
       </button>
       <mat-divider></mat-divider>
+      <!-- Lista de carriles con botón editar -->
+      <p class="paleta-titulo" style="margin-top:12px">Carriles</p>
+      <div *ngFor="let carril of politica?.carriles" class="carril-item">
+        <mat-icon class="carril-icon">{{ carril.horizontal ? 'view_column' : 'table_rows' }}</mat-icon>
+        <span class="carril-nombre">{{ carril.nombre }}</span>
+        <button mat-icon-button class="btn-editar-carril"
+          [disabled]="politica?.estado === 'PUBLICADA'"
+          (click)="editarCarril(carril)"
+          matTooltip="Editar carril">
+          <mat-icon style="font-size:16px">edit</mat-icon>
+        </button>
+      </div>
+      <mat-divider></mat-divider>
       <p class="paleta-hint">Haz clic en un nodo del diagrama para editar sus propiedades.</p>
     </div>
 
@@ -129,6 +158,14 @@
                   <small class="radio-desc">{{ op.descripcion }}</small>
                 </mat-radio-button>
               </mat-radio-group>
+
+              <!-- Advertencia CU-05: CONDICIONAL requiere condiciones -->
+              <div *ngIf="formularioFlujo.get('tipoFlujo')?.value === 'CONDICIONAL' &&
+                          (nodoSeleccionado?.condiciones?.length ?? 0) < 2"
+                   class="aviso-condicion">
+                <mat-icon>warning</mat-icon>
+                <span>Agrega al menos 2 condiciones de ramificación antes de aplicar.</span>
+              </div>
 
               <button mat-raised-button color="primary" class="btn-guardar-prop"
                 (click)="guardarTipoFlujo()" [disabled]="formularioFlujo.invalid">
@@ -271,11 +308,11 @@
 </div>
 
 <!-- Dialog agregar carril -->
-<div class="overlay" *ngIf="panelCarrilAbierto" (click)="panelCarrilAbierto = false"></div>
+<div class="overlay" *ngIf="panelCarrilAbierto" (click)="panelCarrilAbierto = false; carrilEditando = null"></div>
 <div class="dialog-carril" *ngIf="panelCarrilAbierto">
   <div class="dialog-header">
-    <h3>Nuevo Carril</h3>
-    <button mat-icon-button (click)="panelCarrilAbierto = false"><mat-icon>close</mat-icon></button>
+    <h3>{{ carrilEditando ? 'Editar Carril' : 'Nuevo Carril' }}</h3>
+    <button mat-icon-button (click)="panelCarrilAbierto = false; carrilEditando = null"><mat-icon>close</mat-icon></button>
   </div>
   <form [formGroup]="formularioCarril" (ngSubmit)="agregarCarril()" class="dialog-form">
     <mat-form-field appearance="outline">
@@ -285,10 +322,22 @@
         El nombre es obligatorio
       </mat-error>
     </mat-form-field>
+
+    <p class="campo-label" style="margin: 0 0 6px">Orientación</p>
+    <mat-radio-group formControlName="orientacion" class="radio-orientacion">
+      <mat-radio-button value="columna">
+        <mat-icon style="vertical-align:middle;font-size:18px">view_column</mat-icon>
+        Columna (vertical)
+      </mat-radio-button>
+      <mat-radio-button value="fila">
+        <mat-icon style="vertical-align:middle;font-size:18px">table_rows</mat-icon>
+        Fila (horizontal)
+      </mat-radio-button>
+    </mat-radio-group>
     <div class="dialog-acciones">
-      <button mat-button type="button" (click)="panelCarrilAbierto = false">Cancelar</button>
+      <button mat-button type="button" (click)="panelCarrilAbierto = false; carrilEditando = null">Cancelar</button>
       <button mat-raised-button color="primary" type="submit"
-        [disabled]="formularioCarril.invalid">Agregar</button>
+        [disabled]="formularioCarril.invalid">{{ carrilEditando ? 'Guardar' : 'Agregar' }}</button>
     </div>
   </form>
 </div>
@@ -299,3 +348,55 @@
     <p>Cargando editor...</p>
   </div>
 </ng-template>
+
+<!-- Dialog CU-07: Publicar política -->
+<div class="overlay" *ngIf="panelPublicarAbierto" (click)="panelPublicarAbierto = false"></div>
+<div class="dialog-publicar" *ngIf="panelPublicarAbierto">
+  <div class="dialog-header">
+    <h3>Publicar Política</h3>
+    <button mat-icon-button (click)="panelPublicarAbierto = false"><mat-icon>close</mat-icon></button>
+  </div>
+
+  <!-- Sin errores: listo para publicar -->
+  <div *ngIf="validacionLimpia" class="validacion-ok">
+    <mat-icon>check_circle</mat-icon>
+    <p>El diagrama está listo para publicarse.</p>
+    <p *ngIf="advertenciasValidacion.length > 0" class="advertencias-titulo">
+      Advertencias (no bloquean la publicación):
+    </p>
+    <ul class="lista-advertencias" *ngIf="advertenciasValidacion.length > 0">
+      <li *ngFor="let a of advertenciasValidacion">
+        <mat-icon>info</mat-icon> {{ a }}
+      </li>
+    </ul>
+    <p class="aviso-irreversible">
+      <mat-icon>lock</mat-icon> Una vez publicada, la política no podrá editarse.
+    </p>
+  </div>
+
+  <!-- Con errores: no puede publicar -->
+  <div *ngIf="!validacionLimpia">
+    <p class="errores-titulo">No se puede publicar. Corrige los siguientes errores:</p>
+    <ul class="lista-errores">
+      <li *ngFor="let e of erroresValidacion">
+        <mat-icon>error</mat-icon> {{ e }}
+      </li>
+    </ul>
+    <div *ngIf="advertenciasValidacion.length > 0">
+      <p class="advertencias-titulo">Advertencias:</p>
+      <ul class="lista-advertencias">
+        <li *ngFor="let a of advertenciasValidacion">
+          <mat-icon>warning</mat-icon> {{ a }}
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="dialog-acciones">
+    <button mat-button (click)="panelPublicarAbierto = false">Cancelar</button>
+    <button mat-raised-button color="accent" (click)="publicarPolitica()"
+      [disabled]="!validacionLimpia">
+      <mat-icon>publish</mat-icon> Publicar
+    </button>
+  </div>
+</div>
