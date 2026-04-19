@@ -7,6 +7,22 @@ body {
   font-family: Roboto, 'Helvetica Neue', sans-serif;
 }
 
+/* Badge de usuario remoto sobre nodo/carril seleccionado (creado via JS, fuera de ViewEncapsulation) */
+.badge-usuario-grafo {
+  position: absolute;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  color: white;
+  pointer-events: none;
+  z-index: 200;
+  white-space: nowrap;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  line-height: 1.6;
+  letter-spacing: 0.3px;
+}
+
 /* Navbar global */
 .app-navbar {
   position: fixed;

@@ -10,3 +10,10 @@ henry
 henry@workflow.com
 12345678
 asesor
+
+
+
+mario   
+mario@workflow.com
+12345678
+administrador

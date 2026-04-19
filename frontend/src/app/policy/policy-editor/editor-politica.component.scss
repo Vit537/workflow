@@ -150,6 +150,7 @@
   height: 100%;
   background: white;
   cursor: default;
+  position: relative; // necesario para que los badges se posicionen correctamente
 }
 
 /* ── Panel propiedades del nodo (CU-05 y CU-06) ── */
