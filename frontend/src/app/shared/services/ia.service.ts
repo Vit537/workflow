@@ -34,18 +34,28 @@ export interface DiagramaIA {
   conexiones: ConexionIA[];
 }
 
+export interface AccionIA {
+  tipo: string; // AGREGAR_CARRIL | AGREGAR_NODO | AGREGAR_CONEXION | ELIMINAR_CARRIL | ELIMINAR_NODO | ELIMINAR_CONEXION | EDITAR_NODO | EDITAR_CARRIL
+  datos: Record<string, any>;
+}
+
 export interface RespuestaIA {
-  diagrama: DiagramaIA;
+  modo: string;           // 'CREAR' | 'EDITAR'
+  diagrama?: DiagramaIA;  // solo en modo CREAR
+  acciones?: AccionIA[];  // solo en modo EDITAR
   descripcion: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class IaService {
-  private readonly urlApi = 'http://localhost:8001/api/ia';
+  private readonly urlApi = 'http://localhost:8080/api/ia';
 
   constructor(private http: HttpClient) {}
 
-  generarDiagrama(prompt: string): Observable<RespuestaIA> {
-    return this.http.post<RespuestaIA>(`${this.urlApi}/generar-diagrama`, { prompt });
+  generarDiagrama(prompt: string, diagramaActual?: DiagramaIA | null): Observable<RespuestaIA> {
+    return this.http.post<RespuestaIA>(`${this.urlApi}/generar-diagrama`, {
+      prompt,
+      diagramaActual: diagramaActual ?? null,
+    });
   }
 }

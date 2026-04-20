@@ -21,7 +21,7 @@ import {
   Formulario,
 } from '../../shared/models/policy.model';
 import { PoliticaService, SolicitudActualizarDiagrama } from '../../shared/services/politica.service';
-import { IaService, DiagramaIA, NodoIA, ConexionIA } from '../../shared/services/ia.service';
+import { IaService, DiagramaIA, NodoIA, ConexionIA, AccionIA } from '../../shared/services/ia.service';
 import { WebsocketService } from '../../shared/services/websocket.service';
 import { AuthService } from '../../shared/services/auth.service';
 import { Subscription } from 'rxjs';
@@ -566,13 +566,26 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
     this.generandoIA = true;
     this.resultadoIA = null;
     this.descripcionIA = '';
-    this.iaService.generarDiagrama(this.promptIA).subscribe({
+
+    const diagramaActual = this.politica && (this.politica.nodos?.length || this.politica.carriles?.length)
+      ? { carriles: this.politica.carriles ?? [], nodos: this.politica.nodos ?? [], conexiones: this.politica.conexiones ?? [] } as DiagramaIA
+      : null;
+
+    this.iaService.generarDiagrama(this.promptIA, diagramaActual).subscribe({
       next: (resp) => {
-        this.resultadoIA = resp.diagrama;
         this.descripcionIA = resp.descripcion;
         this.generandoIA = false;
-        this.aplicarDiagramaIA(resp.diagrama);
-        this.snackBar.open('Diagrama generado por IA', 'Cerrar', { duration: 3000 });
+
+        if (resp.modo === 'EDITAR' && resp.acciones?.length) {
+          this.ejecutarAccionesIA(resp.acciones);
+          this.snackBar.open(`IA aplicó ${resp.acciones.length} cambio(s)`, 'Cerrar', { duration: 3000 });
+        } else if (resp.modo === 'CREAR' && resp.diagrama) {
+          this.resultadoIA = resp.diagrama;
+          this.aplicarDiagramaIA(resp.diagrama);
+          this.snackBar.open('Diagrama generado por IA', 'Cerrar', { duration: 3000 });
+        } else {
+          this.snackBar.open('La IA no devolvió cambios', 'Cerrar', { duration: 3000 });
+        }
       },
       error: () => {
         this.generandoIA = false;
@@ -581,22 +594,227 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Helper: genera un id corto único ──────────────────────────────────
+  private generarId(): string {
+    return Math.random().toString(36).substring(2, 10);
+  }
+
+  // ── CU-08: Ejecutar acciones del agente IA (modo EDITAR) ──────────────
+  private ejecutarAccionesIA(acciones: AccionIA[]): void {
+    if (!this.politica) return;
+
+    const PADDING_X = 60;
+    const PADDING_Y = 40;
+    const GAP_X = 160;
+    const ALTURA_CARRIL = 140;
+
+    for (const accion of acciones) {
+      switch (accion.tipo) {
+
+        case 'AGREGAR_CARRIL': {
+          const nombre: string = accion.datos['nombre'] ?? 'Nuevo carril';
+          const orden = this.politica.carriles.length;
+          this.politica.carriles.push({ id: this.generarId(), nombre, orden });
+          break;
+        }
+
+        case 'AGREGAR_NODO': {
+          const carrilNombre: string = accion.datos['carrilNombre'] ?? '';
+          const carril = this.politica.carriles.find(c => c.nombre === carrilNombre)
+            ?? this.politica.carriles[0];
+          if (!carril) break;
+          const filaIdx = this.politica.carriles.findIndex(c => c.id === carril.id);
+          const col = this.politica.nodos.filter(n => n.carrilId === carril.id).length;
+          const tipo = (accion.datos['tipo'] ?? 'ACTIVIDAD') as TipoNodo;
+          const ancho = (tipo === 'INICIO' || tipo === 'FIN') ? 40 : tipo === 'DECISION' ? 80 : 120;
+          const alto  = (tipo === 'INICIO' || tipo === 'FIN') ? 40 : tipo === 'DECISION' ? 60 : 50;
+          this.politica.nodos.push({
+            id: this.generarId(),
+            etiqueta: accion.datos['etiqueta'] ?? 'Nuevo nodo',
+            tipo,
+            tipoFlujo: (accion.datos['tipoFlujo'] ?? 'LINEAL') as TipoFlujo,
+            condiciones: accion.datos['condiciones'] ?? [],
+            posX: PADDING_X + col * GAP_X,
+            posY: PADDING_Y + filaIdx * ALTURA_CARRIL + (ALTURA_CARRIL - alto) / 2,
+            ancho,
+            alto,
+            carrilId: carril.id,
+          });
+          break;
+        }
+
+        case 'AGREGAR_CONEXION': {
+          const origen = this.politica.nodos.find(n => n.etiqueta === accion.datos['nodoOrigenEtiqueta']);
+          const destino = this.politica.nodos.find(n => n.etiqueta === accion.datos['nodoDestinoEtiqueta']);
+          if (origen && destino) {
+            this.politica.conexiones.push({
+              id: this.generarId(),
+              nodoOrigenId: origen.id,
+              nodoDestinoId: destino.id,
+              etiqueta: accion.datos['etiqueta'] ?? '',
+            });
+          }
+          break;
+        }
+
+        case 'ELIMINAR_NODO': {
+          const nodo = this.politica.nodos.find(n => n.etiqueta === accion.datos['etiqueta']);
+          if (!nodo) break;
+          this.politica.conexiones = this.politica.conexiones.filter(
+            c => c.nodoOrigenId !== nodo.id && c.nodoDestinoId !== nodo.id
+          );
+          this.politica.nodos = this.politica.nodos.filter(n => n.id !== nodo.id);
+          break;
+        }
+
+        case 'ELIMINAR_CARRIL': {
+          const carril = this.politica.carriles.find(c => c.nombre === accion.datos['nombre']);
+          if (!carril) break;
+          const idsNodosCarril = this.politica.nodos
+            .filter(n => n.carrilId === carril.id).map(n => n.id);
+          this.politica.conexiones = this.politica.conexiones.filter(
+            c => !idsNodosCarril.includes(c.nodoOrigenId) && !idsNodosCarril.includes(c.nodoDestinoId)
+          );
+          this.politica.nodos = this.politica.nodos.filter(n => n.carrilId !== carril.id);
+          this.politica.carriles = this.politica.carriles.filter(c => c.id !== carril.id);
+          // Reordenar los índices de orden
+          this.politica.carriles.forEach((c, i) => c.orden = i);
+          break;
+        }
+
+        case 'ELIMINAR_CONEXION': {
+          const origen = this.politica.nodos.find(n => n.etiqueta === accion.datos['nodoOrigenEtiqueta']);
+          const destino = this.politica.nodos.find(n => n.etiqueta === accion.datos['nodoDestinoEtiqueta']);
+          if (origen && destino) {
+            this.politica.conexiones = this.politica.conexiones.filter(
+              c => !(c.nodoOrigenId === origen.id && c.nodoDestinoId === destino.id)
+            );
+          }
+          break;
+        }
+
+        case 'EDITAR_NODO': {
+          const nodo = this.politica.nodos.find(n => n.etiqueta === accion.datos['etiqueta']);
+          if (!nodo) break;
+          if (accion.datos['nuevoNombre']) nodo.etiqueta = accion.datos['nuevoNombre'];
+          if (accion.datos['tipoFlujo'])  nodo.tipoFlujo = accion.datos['tipoFlujo'] as TipoFlujo;
+          break;
+        }
+
+        case 'EDITAR_CARRIL': {
+          const carril = this.politica.carriles.find(c => c.nombre === accion.datos['nombre']);
+          if (!carril) break;
+          if (accion.datos['nuevoNombre']) carril.nombre = accion.datos['nuevoNombre'];
+          break;
+        }
+
+        case 'REORDENAR_DIAGRAMA': {
+          // Solo redistribuye posiciones, NO toca nodos ni conexiones
+          this.aplicarLayoutAutomatico(accion.datos['orientacion'] ?? 'auto');
+          break;
+        }
+
+        case 'CAMBIAR_ORIENTACION': {
+          const nuevaOrientacion: string = accion.datos['orientacion'] ?? 'horizontal';
+          const esColumna = nuevaOrientacion === 'vertical';
+          this.politica.carriles.forEach(c => c.horizontal = esColumna);
+          this.aplicarLayoutAutomatico(nuevaOrientacion);
+          break;
+        }
+      }
+    }
+
+    // Re-renderizar y guardar
+    this.grafoEstado.politica = this.politica;
+    this.limpiarTodosHighlights();
+    this.grafoRender.destruir();
+    this.inicializarGrafo();
+    this.panelIaAbierto = false;
+    setTimeout(() => this.guardarDiagrama(false), 300);
+  }
+
+  // ── Layout automático (reorganizar sin eliminar nada) ──────────────────
+  private aplicarLayoutAutomatico(orientacion: string): void {
+    if (!this.politica) return;
+
+    // Determinar orientación a usar
+    const esColumna = orientacion === 'vertical'
+      ? true
+      : orientacion === 'horizontal'
+        ? false
+        : (this.politica.carriles[0]?.horizontal ?? false);
+
+    const PADDING_X = 60;
+    const PADDING_Y = 50;
+    const GAP_X = 160;   // espacio entre nodos en layout horizontal
+    const GAP_Y = 110;   // espacio entre nodos en layout vertical
+
+    if (!esColumna) {
+      // ── Layout horizontal: carriles = filas, nodos fluyen izquierda→derecha
+      const colPorCarril = new Map<string, number>();
+      this.politica.carriles.forEach(c => colPorCarril.set(c.id, 0));
+
+      this.politica.nodos.forEach(nodo => {
+        const col = colPorCarril.get(nodo.carrilId) ?? 0;
+        colPorCarril.set(nodo.carrilId, col + 1);
+        nodo.posX = PADDING_X + col * GAP_X;
+        nodo.posY = PADDING_Y;
+      });
+    } else {
+      // ── Layout vertical: carriles = columnas, nodos fluyen arriba→abajo
+      const rowPorCarril = new Map<string, number>();
+      this.politica.carriles.forEach(c => rowPorCarril.set(c.id, 0));
+
+      this.politica.nodos.forEach(nodo => {
+        const row = rowPorCarril.get(nodo.carrilId) ?? 0;
+        rowPorCarril.set(nodo.carrilId, row + 1);
+        nodo.posX = PADDING_X;
+        nodo.posY = PADDING_Y + row * GAP_Y;
+      });
+    }
+  }
+
   private aplicarDiagramaIA(diagrama: DiagramaIA): void {
     if (!this.politica || !this.grafoEstado.grafo) return;
+
+    // ── Layout automático: asignar posiciones por carril ─────────────────
+    // Cada carril ocupa una fila vertical. Dentro de cada fila los nodos
+    // se distribuyen horizontalmente según el orden topológico implícito.
+    const PADDING_X = 60;
+    const PADDING_Y = 40;
+    const GAP_X = 160;
+    const ALTURA_CARRIL = 140;
+
+    // índice de carril → fila vertical
+    const filaCarril = new Map<string, number>();
+    diagrama.carriles.forEach((c, i) => filaCarril.set(c.id, i));
+
+    // contador de columna por carril
+    const colPorCarril = new Map<string, number>();
+    diagrama.carriles.forEach((c) => colPorCarril.set(c.id, 0));
+
+    const nodosConPosicion = diagrama.nodos.map((n) => {
+      const fila = filaCarril.get(n.carrilId) ?? 0;
+      const col = colPorCarril.get(n.carrilId) ?? 0;
+      colPorCarril.set(n.carrilId, col + 1);
+      const ancho = n.ancho ?? 120;
+      const alto = n.alto ?? 50;
+      const posX = PADDING_X + col * GAP_X;
+      const posY = PADDING_Y + fila * ALTURA_CARRIL + (ALTURA_CARRIL - alto) / 2;
+      return { ...n, posX, posY, ancho, alto };
+    });
 
     // Limpiar el diagrama local
     this.politica.carriles = [];
     this.politica.nodos = [];
     this.politica.conexiones = [];
 
-    // Reconstruir carriles
     diagrama.carriles.forEach((c) => {
       this.politica!.carriles.push({ id: c.id, nombre: c.nombre, orden: c.orden });
     });
 
-    // Reconstruir nodos
-    diagrama.nodos.forEach((n: NodoIA) => {
-      const nodo: Nodo = {
+    nodosConPosicion.forEach((n) => {
+      this.politica!.nodos.push({
         id: n.id,
         etiqueta: n.etiqueta,
         tipo: n.tipo as TipoNodo,
@@ -607,21 +825,22 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
         ancho: n.ancho,
         alto: n.alto,
         carrilId: n.carrilId,
-      };
-      this.politica!.nodos.push(nodo);
+      });
     });
 
-    // Reconstruir conexiones
     diagrama.conexiones.forEach((cx: ConexionIA) => {
       this.politica!.conexiones.push({ id: cx.id, nodoOrigenId: cx.nodoOrigenId, nodoDestinoId: cx.nodoDestinoId, etiqueta: cx.etiqueta ?? '' });
     });
 
-    // Sincronizar con el estado compartido y re-renderizar
+    // Sincronizar con el estado compartido, re-renderizar y guardar
     this.grafoEstado.politica = this.politica;
     this.limpiarTodosHighlights();
     this.grafoRender.destruir();
     this.inicializarGrafo();
     this.panelIaAbierto = false;
+
+    // Guardar inmediatamente (no silencioso para confirmar visualmente)
+    setTimeout(() => this.guardarDiagrama(false), 300);
   }
 
   volverALista(): void {
