@@ -1,0 +1,36 @@
+<div class="panel-ia" [class.panel-ia-visible]="abierto">
+  <div class="panel-ia-header">
+    <mat-icon>auto_awesome</mat-icon>
+    <span>Generar diagrama con Inteligencia Artificial</span>
+    <button mat-icon-button (click)="cerrado.emit()"><mat-icon>close</mat-icon></button>
+  </div>
+  <div class="panel-ia-body">
+    <mat-form-field appearance="outline" class="ia-input">
+      <mat-label>Describe el proceso que quieres modelar</mat-label>
+      <textarea matInput [(ngModel)]="promptIA" rows="3"
+        placeholder="Ej: Proceso de aprobación de solicitudes de crédito con validación de documentos, revisión del comité y notificación al cliente."></textarea>
+    </mat-form-field>
+    <div class="ia-actions">
+      <!-- CU-09: Voz -->
+      <button mat-icon-button
+        [color]="grabandoVoz ? 'warn' : 'primary'"
+        (click)="grabandoVoz ? detenerGrabacionVoz() : iniciarGrabacionVoz()"
+        [matTooltip]="grabandoVoz ? 'Detener grabación' : 'Dictar por voz (Chrome/Edge)'"
+        [disabled]="generandoIA">
+        <mat-icon>{{ grabandoVoz ? 'mic_off' : 'mic' }}</mat-icon>
+      </button>
+      <span *ngIf="grabandoVoz" class="grabando-indicator">
+        <mat-icon class="pulso">radio_button_checked</mat-icon> Escuchando...
+      </span>
+
+      <!-- CU-08: Texto -->
+      <button mat-raised-button color="primary" (click)="generarDiagramaConIA()"
+        [disabled]="generandoIA || !promptIA.trim()">
+        <mat-spinner *ngIf="generandoIA" diameter="18"></mat-spinner>
+        <mat-icon *ngIf="!generandoIA">smart_toy</mat-icon>
+        {{ generandoIA ? 'Generando...' : 'Generar Diagrama' }}
+      </button>
+      <span *ngIf="descripcionIA" class="ia-descripcion">{{ descripcionIA }}</span>
+    </div>
+  </div>
+</div>

@@ -46,6 +46,38 @@ class CarrilIA(BaseModel):
     nombre: str
     orden: int
 
+class CampoIA(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+    nombre: str
+    etiqueta: str
+    tipoCampo: str = "TEXTO"   # TEXTO | NUMERO | FECHA | BOOLEANO | SELECCION
+    requerido: bool = False
+
+    @field_validator('tipoCampo', mode='before')
+    @classmethod
+    def tipoCampo_valido(cls, v: Any) -> str:
+        validos = {"TEXTO", "NUMERO", "FECHA", "BOOLEANO", "SELECCION"}
+        return v if v in validos else "TEXTO"
+
+
+class FormularioIA(BaseModel):
+    model_config = ConfigDict(extra='ignore')
+    titulo: str
+    instrucciones: str = ""
+    requisitos: list[str] = Field(default_factory=list)
+    campos: list[CampoIA] = Field(default_factory=list)
+
+    @field_validator('requisitos', mode='before')
+    @classmethod
+    def requisitos_no_null(cls, v: Any) -> list[str]:
+        return v if isinstance(v, list) else []
+
+    @field_validator('campos', mode='before')
+    @classmethod
+    def campos_no_null(cls, v: Any) -> list:
+        return v if isinstance(v, list) else []
+
+
 class NodoIA(BaseModel):
     model_config = ConfigDict(extra='ignore')
     id: str = Field(default_factory=lambda: uuid.uuid4().hex[:8])
@@ -58,6 +90,7 @@ class NodoIA(BaseModel):
     ancho: Optional[float] = 120.0
     alto: Optional[float] = 50.0
     condiciones: Optional[list[str]] = Field(default_factory=list)
+    formulario: Optional[FormularioIA] = None
 
     @field_validator('condiciones', mode='before')
     @classmethod
@@ -68,6 +101,11 @@ class NodoIA(BaseModel):
     @classmethod
     def tipoFlujo_no_null(cls, v: Any) -> str:
         return v if v else "LINEAL"
+
+    @field_validator('formulario', mode='before')
+    @classmethod
+    def formulario_no_null(cls, v: Any) -> Optional[dict]:
+        return v if isinstance(v, dict) else None
 
 class ConexionIA(BaseModel):
     model_config = ConfigDict(extra='ignore')
@@ -117,7 +155,15 @@ SCHEMA_JSON = """\
       "posY": <numero>,
       "ancho": <numero>,
       "alto": <numero>,
-      "condiciones": ["<rama1>", "<rama2>"]
+      "condiciones": ["<rama1>", "<rama2>"],
+      "formulario": {{
+        "titulo": "<nombre descriptivo del formulario>",
+        "instrucciones": "<instrucción para el asesor sobre qué hacer en este paso>",
+        "requisitos": ["<documento o requisito que el cliente debe presentar>"],
+        "campos": [
+          {{"nombre": "<clave_sin_espacios>", "etiqueta": "<etiqueta visible>", "tipoCampo": "TEXTO|NUMERO|FECHA|BOOLEANO|SELECCION", "requerido": true}}
+        ]
+      }}
     }}
   ],
   "conexiones": [
@@ -136,7 +182,9 @@ Reglas estrictas:
 7. Los ids deben ser strings cortos únicos (8 caracteres alfanuméricos).
 8. posX y posY deben distribuir los nodos visualmente (incrementa posX ~150 entre nodos del mismo carril).
 9. nodos INICIO y FIN tienen ancho=40, alto=40. DECISION tiene ancho=80, alto=60. El resto ancho=120, alto=50.
-10. condiciones solo se rellena cuando tipoFlujo es CONDICIONAL o ITERATIVO."""
+10. condiciones solo se rellena cuando tipoFlujo es CONDICIONAL o ITERATIVO.
+11. OBLIGATORIO: Todo nodo de tipo ACTIVIDAD DEBE incluir un campo "formulario" con titulo, instrucciones, requisitos y al menos 2-4 campos relevantes para ese paso del proceso. Los campos deben tener nombres en snake_case (ej: nombre_cliente, numero_documento). NUNCA dejes formulario como null en un nodo ACTIVIDAD.
+12. Los nodos INICIO, FIN, DECISION, COMPUERTA_PARALELA y COMPUERTA_UNION NO llevan formulario (omitir el campo o poner null)."""
 
 SYSTEM_PROMPT_CREAR = """\
 Eres un experto en diseño de procesos de negocio tipo BPMN con diagramas swimlane.

@@ -1,0 +1,177 @@
+<div class="prop-header">
+  <h3>{{ nodo?.etiqueta }}</h3>
+  <button mat-icon-button (click)="cerrado.emit()"><mat-icon>close</mat-icon></button>
+</div>
+
+<mat-tab-group [(selectedIndex)]="tabActiva" class="prop-tabs">
+
+  <!-- TAB CU-05: Tipo de Flujo -->
+  <mat-tab label="Flujo">
+    <div class="tab-content">
+
+      <!-- Nodos sin tipo de flujo configurable -->
+      <ng-container *ngIf="nodo?.tipo === 'INICIO' || nodo?.tipo === 'FIN' ||
+                           nodo?.tipo === 'COMPUERTA_PARALELA' || nodo?.tipo === 'COMPUERTA_UNION'">
+        <p class="aviso-nodo-fijo">
+          <mat-icon>info</mat-icon>
+          Este nodo tiene un comportamiento fijo y no requiere tipo de flujo.
+        </p>
+      </ng-container>
+
+      <!-- Nodos con tipo de flujo configurable -->
+      <ng-container *ngIf="nodo?.tipo === 'ACTIVIDAD' || nodo?.tipo === 'DECISION'">
+        <form [formGroup]="formularioFlujo">
+        <p class="campo-label">Tipo de comportamiento</p>
+
+        <mat-radio-group formControlName="tipoFlujo" class="radio-flujo">
+          <mat-radio-button *ngFor="let op of opcionesFlujo" [value]="op.valor" class="radio-item">
+            <span class="radio-titulo">{{ op.etiqueta }}</span>
+            <small class="radio-desc">{{ op.descripcion }}</small>
+          </mat-radio-button>
+        </mat-radio-group>
+
+        <!-- Advertencia: CONDICIONAL requiere condiciones -->
+        <div *ngIf="formularioFlujo.get('tipoFlujo')?.value === 'CONDICIONAL' &&
+                    (nodo?.condiciones?.length ?? 0) < 2"
+             class="aviso-condicion">
+          <mat-icon>warning</mat-icon>
+          <span>Agrega al menos 2 condiciones de ramificación antes de aplicar.</span>
+        </div>
+
+        <button mat-raised-button color="primary" class="btn-guardar-prop"
+          (click)="guardarTipoFlujo()" [disabled]="formularioFlujo.invalid">
+          Aplicar tipo de flujo
+        </button>
+
+        <!-- Condiciones (solo CONDICIONAL) -->
+        <ng-container *ngIf="formularioFlujo.get('tipoFlujo')?.value === 'CONDICIONAL'">
+          <mat-divider class="divider"></mat-divider>
+          <p class="campo-label">Condiciones de ramificación</p>
+
+          <mat-chip-set class="chip-lista">
+            <mat-chip *ngFor="let c of nodo?.condiciones; let i = index"
+              (removed)="eliminarCondicion(i)" [removable]="true">
+              {{ c }}
+              <button matChipRemove><mat-icon>cancel</mat-icon></button>
+            </mat-chip>
+          </mat-chip-set>
+
+          <div class="fila-agregar">
+            <mat-form-field appearance="outline" class="input-condicion">
+              <mat-label>Nueva condición</mat-label>
+              <input matInput formControlName="nuevaCondicion"
+                placeholder="Ej: aprobado" (keydown.enter)="agregarCondicion()">
+            </mat-form-field>
+            <button mat-icon-button color="primary" (click)="agregarCondicion()"
+              matTooltip="Agregar condición">
+              <mat-icon>add_circle</mat-icon>
+            </button>
+          </div>
+        </ng-container>
+      </form>
+      </ng-container><!-- fin ng-container ACTIVIDAD|DECISION -->
+
+    </div>
+  </mat-tab>
+
+  <!-- TAB CU-06: Formulario del nodo (solo para ACTIVIDAD) -->
+  <mat-tab label="Formulario" *ngIf="nodo?.tipo === 'ACTIVIDAD'">
+    <div class="tab-content">
+
+      <!-- Encabezado del formulario -->
+      <form [formGroup]="formularioFormulario">
+        <mat-form-field appearance="outline" class="campo-full">
+          <mat-label>Título del formulario</mat-label>
+          <input matInput formControlName="titulo" placeholder="Ej: Datos del cliente">
+          <mat-error *ngIf="formularioFormulario.get('titulo')?.hasError('required')">
+            El título es obligatorio
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-full">
+          <mat-label>Instrucciones para el asesor</mat-label>
+          <textarea matInput formControlName="instrucciones" rows="3"
+            placeholder="Ej: Solicite DNI y comprobante"></textarea>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" class="btn-guardar-prop"
+          (click)="guardarEncabezadoFormulario()" [disabled]="formularioFormulario.invalid">
+          Guardar encabezado
+        </button>
+
+        <!-- Requisitos -->
+        <mat-divider class="divider"></mat-divider>
+        <p class="campo-label">Requisitos del cliente</p>
+
+        <mat-chip-set class="chip-lista">
+          <mat-chip *ngFor="let r of requisitosNodo; let i = index"
+            (removed)="eliminarRequisito(i)" [removable]="true">
+            {{ r }}
+            <button matChipRemove><mat-icon>cancel</mat-icon></button>
+          </mat-chip>
+        </mat-chip-set>
+
+        <div class="fila-agregar">
+          <mat-form-field appearance="outline" class="input-condicion">
+            <mat-label>Nuevo requisito</mat-label>
+            <input matInput formControlName="nuevoRequisito"
+              placeholder="Ej: DNI vigente" (keydown.enter)="agregarRequisito()">
+          </mat-form-field>
+          <button mat-icon-button color="primary" (click)="agregarRequisito()"
+            matTooltip="Agregar requisito">
+            <mat-icon>add_circle</mat-icon>
+          </button>
+        </div>
+      </form>
+
+      <!-- Campos del formulario -->
+      <mat-divider class="divider"></mat-divider>
+      <p class="campo-label">Campos del formulario</p>
+
+      <div class="tabla-campos" *ngIf="camposNodo.length > 0">
+        <div class="fila-campo cabecera">
+          <span>Etiqueta</span><span>Tipo</span><span>Req.</span><span></span>
+        </div>
+        <div class="fila-campo" *ngFor="let campo of camposNodo; let i = index">
+          <span>{{ campo.etiqueta }}</span>
+          <span>{{ campo.tipoCampo }}</span>
+          <mat-icon [style.color]="campo.requerido ? '#e53935' : '#9e9e9e'">
+            {{ campo.requerido ? 'star' : 'star_border' }}
+          </mat-icon>
+          <button mat-icon-button color="warn" (click)="eliminarCampo(i)">
+            <mat-icon>delete</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <form [formGroup]="formularioCampo" class="form-campo">
+        <mat-form-field appearance="outline" class="campo-full">
+          <mat-label>Nombre técnico</mat-label>
+          <input matInput formControlName="nombre" placeholder="Ej: numeroDni">
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="campo-full">
+          <mat-label>Etiqueta visible</mat-label>
+          <input matInput formControlName="etiqueta" placeholder="Ej: N° de DNI">
+        </mat-form-field>
+        <div class="fila-dos">
+          <mat-form-field appearance="outline" class="campo-tipo">
+            <mat-label>Tipo</mat-label>
+            <mat-select formControlName="tipoCampo">
+              <mat-option *ngFor="let tc of tiposCampo" [value]="tc.valor">
+                {{ tc.etiqueta }}
+              </mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-slide-toggle formControlName="requerido" class="toggle-req">
+            Requerido
+          </mat-slide-toggle>
+        </div>
+        <button mat-raised-button color="accent" class="btn-guardar-prop"
+          (click)="agregarCampo()" [disabled]="formularioCampo.invalid">
+          <mat-icon>add</mat-icon> Agregar campo
+        </button>
+      </form>
+
+    </div>
+  </mat-tab>
+</mat-tab-group>

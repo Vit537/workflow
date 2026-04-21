@@ -1,0 +1,71 @@
+.panel-ia {
+  background: #f3e5f5;
+  border-bottom: 1px solid #ce93d8;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s ease;
+  flex-shrink: 0;
+}
+
+.panel-ia-visible {
+  max-height: 220px;
+}
+
+.panel-ia-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px 4px;
+  font-weight: 500;
+  font-size: 14px;
+
+  > span {
+    flex: 1;
+  }
+}
+
+.panel-ia-body {
+  padding: 4px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ia-input {
+  width: 100%;
+}
+
+.ia-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.ia-descripcion {
+  font-size: 12px;
+  color: rgba(0, 0, 0, 0.6);
+  font-style: italic;
+  flex: 1;
+}
+
+.grabando-indicator {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: #d32f2f;
+  font-size: 13px;
+  font-weight: 500;
+
+  .pulso {
+    animation: pulso 1s ease-in-out infinite;
+    font-size: 16px;
+    width: 16px;
+    height: 16px;
+  }
+}
+
+@keyframes pulso {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.2; }
+}

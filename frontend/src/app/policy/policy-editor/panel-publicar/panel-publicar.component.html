@@ -1,0 +1,53 @@
+<ng-container *ngIf="abierto">
+  <div class="overlay" (click)="cerrado.emit()"></div>
+
+  <div class="dialog-publicar">
+    <div class="dialog-header">
+      <h3>Publicar Política</h3>
+      <button mat-icon-button (click)="cerrado.emit()"><mat-icon>close</mat-icon></button>
+    </div>
+
+    <!-- Sin errores: listo para publicar -->
+    <div *ngIf="valido" class="validacion-ok">
+      <mat-icon>check_circle</mat-icon>
+      <p>El diagrama está listo para publicarse.</p>
+      <p *ngIf="advertencias.length > 0" class="advertencias-titulo">
+        Advertencias (no bloquean la publicación):
+      </p>
+      <ul class="lista-advertencias" *ngIf="advertencias.length > 0">
+        <li *ngFor="let a of advertencias">
+          <mat-icon>info</mat-icon> {{ a }}
+        </li>
+      </ul>
+      <p class="aviso-irreversible">
+        <mat-icon>lock</mat-icon> Una vez publicada, la política no podrá editarse.
+      </p>
+    </div>
+
+    <!-- Con errores: no puede publicar -->
+    <div *ngIf="!valido">
+      <p class="errores-titulo">No se puede publicar. Corrige los siguientes errores:</p>
+      <ul class="lista-errores">
+        <li *ngFor="let e of errores">
+          <mat-icon>error</mat-icon> {{ e }}
+        </li>
+      </ul>
+      <div *ngIf="advertencias.length > 0">
+        <p class="advertencias-titulo">Advertencias:</p>
+        <ul class="lista-advertencias">
+          <li *ngFor="let a of advertencias">
+            <mat-icon>warning</mat-icon> {{ a }}
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="dialog-acciones">
+      <button mat-button (click)="cerrado.emit()">Cancelar</button>
+      <button mat-raised-button color="accent" (click)="confirmarPublicar.emit()"
+        [disabled]="!valido">
+        <mat-icon>publish</mat-icon> Publicar
+      </button>
+    </div>
+  </div>
+</ng-container>

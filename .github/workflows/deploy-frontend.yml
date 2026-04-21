@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - ciclo-3
+      - primeros-cambios
     paths:
       - 'frontend/**'
 
@@ -20,10 +20,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout ciclo-3
+      - name: Checkout primeros-cambios
         uses: actions/checkout@v4
         with:
-          ref: ciclo-3
+          ref: primeros-cambios
 
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v2

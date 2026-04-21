@@ -22,9 +22,12 @@ import { MatDividerModule } from '@angular/material/divider';
 import { PolicyRoutingModule } from './policy-routing-module';
 import { GestionPoliticasComponent } from './policy-list/gestion-politicas.component';
 import { EditorPoliticaComponent } from './policy-editor/editor-politica.component';
+import { NodoPropiedadesComponent } from './policy-editor/nodo-propiedades/nodo-propiedades.component';
+import { PanelPublicarComponent } from './policy-editor/panel-publicar/panel-publicar.component';
+import { PanelIaComponent } from './policy-editor/panel-ia/panel-ia.component';
 
 @NgModule({
-  declarations: [GestionPoliticasComponent, EditorPoliticaComponent],
+  declarations: [GestionPoliticasComponent, EditorPoliticaComponent, NodoPropiedadesComponent, PanelPublicarComponent, PanelIaComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,

@@ -1,0 +1,125 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  z-index: 99;
+}
+
+.dialog-publicar {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 420px;
+  max-height: 80vh;
+  overflow-y: auto;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.24);
+  z-index: 100;
+  padding: 8px 0 16px;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+  }
+}
+
+.validacion-ok {
+  padding: 12px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+
+  > mat-icon {
+    color: #4caf50;
+    font-size: 40px;
+    height: 40px;
+    width: 40px;
+    align-self: center;
+  }
+
+  > p {
+    margin: 0;
+    font-size: 14px;
+  }
+}
+
+.aviso-irreversible {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #f57c00;
+  background: #fff3e0;
+  border-radius: 4px;
+  padding: 6px 10px;
+  width: 100%;
+  box-sizing: border-box;
+
+  mat-icon {
+    font-size: 16px;
+    height: 16px;
+    width: 16px;
+  }
+}
+
+.errores-titulo {
+  padding: 8px 20px 4px;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #c62828;
+}
+
+.advertencias-titulo {
+  padding: 4px 0;
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #f57c00;
+}
+
+.lista-errores,
+.lista-advertencias {
+  margin: 0;
+  padding: 0 20px;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+
+  li {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 13px;
+
+    mat-icon {
+      font-size: 16px;
+      height: 16px;
+      width: 16px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+  }
+}
+
+.lista-errores li mat-icon { color: #c62828; }
+.lista-advertencias li mat-icon { color: #f57c00; }
+
+.dialog-acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 8px 16px 0;
+}

@@ -1,7 +1,21 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { TipoNodo } from '../models/policy.model';
+import { TipoNodo, TipoCampo } from '../models/policy.model';
+
+export interface CampoIA {
+  nombre: string;
+  etiqueta: string;
+  tipoCampo: TipoCampo;
+  requerido: boolean;
+}
+
+export interface FormularioIA {
+  titulo: string;
+  instrucciones: string;
+  requisitos: string[];
+  campos: CampoIA[];
+}
 
 export interface CarrilIA {
   id: string;
@@ -19,6 +33,8 @@ export interface NodoIA {
   ancho: number;
   alto: number;
   carrilId: string;
+  condiciones?: string[];
+  formulario?: FormularioIA | null;
 }
 
 export interface ConexionIA {
