@@ -17,6 +17,7 @@ Habilita estas 3 APIs (búscalas por nombre):
 | API | Nombre para buscar |
 |---|---|
 | Cloud Run | `Cloud Run API` |
+| Cloud Run Admin | `Cloud Run Admin API`
 | Artifact Registry | `Artifact Registry API` |
 | Cloud Build | `Cloud Build API` |
 
