@@ -79,8 +79,9 @@ public class ServicioConsulta {
     consulta.setMensajeAsesor(solicitud.getMensajeAsesor());
     consulta.setAtendidaEn(Instant.now());
 
-    // Si el asesor vinculó una política, iniciar el trámite automáticamente
-    if (solicitud.getPoliticaId() != null && !solicitud.getPoliticaId().isBlank()) {
+    // Si el asesor vinculó una política y la consulta aún no tiene trámite, iniciarlo
+    if (solicitud.getPoliticaId() != null && !solicitud.getPoliticaId().isBlank()
+        && (consulta.getTramiteId() == null || consulta.getTramiteId().isBlank())) {
       SolicitudCrearTramite solTramite = new SolicitudCrearTramite();
       solTramite.setPoliticaId(solicitud.getPoliticaId());
       solTramite.setConsultaId(consulta.getId());   // enlace bidireccional

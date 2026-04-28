@@ -51,7 +51,7 @@ export class DetalleConsultaComponent implements OnInit {
     if (stateConsulta?.id) {
       this.consulta = stateConsulta;
       this.mensajeAsesor = stateConsulta.mensajeAsesor ?? '';
-      this.politicaId = stateConsulta.tramiteId ?? '';
+      this.politicaId = '';
       this.correoVerificacion = stateConsulta.clienteCorreo ?? '';
       this.cargando = false;
       return;
@@ -63,7 +63,7 @@ export class DetalleConsultaComponent implements OnInit {
       next: (c) => {
         this.consulta = c;
         this.mensajeAsesor = c.mensajeAsesor ?? '';
-        this.politicaId = c.tramiteId ?? '';
+        this.politicaId = '';
         this.correoVerificacion = c.clienteCorreo ?? '';
         this.cargando = false;
       },
