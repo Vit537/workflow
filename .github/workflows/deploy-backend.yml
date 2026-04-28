@@ -8,6 +8,7 @@ on:
       - 'backend/**'
       - 'ai-service/**'
       - '.github/workflows/deploy-backend.yml'
+  workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
