@@ -35,3 +35,16 @@ Thumbs.db
 !package-lock.json
 !tsconfig*.json
 !angular.json
+
+# Carpetas privadas / documentación interna
+archivos-ordenar/
+imagenes-ejemplo/
+
+# Archivos privados del proyecto
+/casos_de_uso_core.md
+/credenciales.md
+/documentacion_proyecto_workflow*.md
+/errores.md
+/errores-externos.md
+/prompt.md
+/prompt2.md
