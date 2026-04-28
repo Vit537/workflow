@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - primeros-cambios
+      - ultimos-cambios
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'
@@ -13,7 +13,6 @@ env:
   REGION: us-central1
   REGISTRY: us-central1-docker.pkg.dev
   REPO: workflow-repo
-  BACKEND_URL: https://spring-service-468909365212.us-central1.run.app
 
 jobs:
   deploy-frontend:
@@ -24,7 +23,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: primeros-cambios
+          ref: ultimos-cambios
 
       - name: Authenticate with GCP
         uses: google-github-actions/auth@v2
@@ -34,11 +33,20 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
 
+      - name: Get backend URL from Cloud Run
+        id: backend-url
+        run: |
+          URL=$(gcloud run services describe spring-service \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }} \
+            --format "value(status.url)")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
       - name: Patch API URLs in Angular services
         working-directory: frontend
         run: |
           find src/app/shared/services -name "*.ts" \
-            -exec sed -i "s|http://localhost:8080|${{ env.BACKEND_URL }}|g" {} \;
+            -exec sed -i "s|http://localhost:8080|${{ steps.backend-url.outputs.url }}|g" {} \;
 
       - name: Build frontend image
         working-directory: frontend
@@ -63,6 +71,19 @@ jobs:
             --max-instances 3 \
             --project ${{ env.PROJECT_ID }}
 
+      - name: Get frontend URL
+        id: frontend-url
+        run: |
+          URL=$(gcloud run services describe angular-frontend \
+            --region ${{ env.REGION }} \
+            --project ${{ env.PROJECT_ID }} \
+            --format "value(status.url)")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+
       - name: Summary
         run: |
-          echo "Frontend: https://angular-frontend-468909365212.us-central1.run.app"
+          echo "### Deploy completado" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend:** ${{ steps.backend-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend:** ${{ steps.frontend-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "> Recuerda actualizar el secret **FRONTEND_URL** con la URL del frontend si es la primera vez." >> $GITHUB_STEP_SUMMARY
