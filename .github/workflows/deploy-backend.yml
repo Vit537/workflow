@@ -94,6 +94,12 @@ jobs:
       - name: Configure Docker for Artifact Registry
         run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
 
+      - name: Write Firebase credentials
+        env:
+          FIREBASE_JSON: ${{ secrets.FIREBASE_ADMINSDK_JSON }}
+        run: |
+          printf '%s' "$FIREBASE_JSON" > backend/src/main/resources/firebase-adminsdk.json
+
       - name: Build backend image
         working-directory: backend
         run: |
