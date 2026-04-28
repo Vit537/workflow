@@ -9,4 +9,7 @@ public class SolicitudCrearTramite {
 
   @NotBlank
   private String politicaId;
+
+  /** Consulta del cliente que originó este trámite (opcional). */
+  private String consultaId;
 }

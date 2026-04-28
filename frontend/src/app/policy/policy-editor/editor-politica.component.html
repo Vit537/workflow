@@ -16,9 +16,10 @@
     </button>
 
     <!-- CU-08: abrir panel IA -->
-    <button mat-stroked-button (click)="panelIaAbierto = !panelIaAbierto"
-      [disabled]="politica?.estado === 'PUBLICADA'" class="btn-ia" matTooltip="Generar diagrama con IA">
-      <mat-icon>auto_awesome</mat-icon> IA
+    <button mat-stroked-button (click)="toggleIA()"
+      [disabled]="politica?.estado === 'PUBLICADA'" class="btn-ia"
+      [matTooltip]="panelIaAbierto ? 'Cerrar asistente' : 'Abrir asistente de diseño'">
+      <mat-icon>auto_awesome</mat-icon> Asistente IA
     </button>
 
     <!-- CU-07: publicar -->
@@ -77,35 +78,51 @@
   <div class="editor-body">
 
     <!-- Paleta de nodos izquierda -->
-    <div class="paleta">
-      <p class="paleta-titulo">Nodos</p>
-      <button *ngFor="let item of tiposNodo" mat-stroked-button class="btn-nodo"
-        [disabled]="politica?.estado === 'PUBLICADA'"
-        (click)="agregarNodo(item.tipo, item.etiqueta)"
-        [matTooltip]="'Agregar: ' + item.etiqueta">
-        <mat-icon>{{ item.icono }}</mat-icon>
-        <span>{{ item.etiqueta }}</span>
-      </button>
-      <mat-divider></mat-divider>
-      <!-- Lista de carriles con boton editar -->
-      <p class="paleta-titulo" style="margin-top:12px">Carriles</p>
-      <div *ngFor="let carril of politica?.carriles" class="carril-item">
-        <mat-icon class="carril-icon">{{ carril.horizontal ? 'view_column' : 'table_rows' }}</mat-icon>
-        <span class="carril-nombre">{{ carril.nombre }}</span>
-        <button mat-icon-button class="btn-editar-carril"
+    <div class="paleta" [class.paleta-colapsada]="paletaColapsada">
+      <div class="paleta-inner">
+
+        <div class="paleta-seccion-header">
+          <span class="paleta-titulo">Nodos</span>
+        </div>
+
+        <button *ngFor="let item of tiposNodo" mat-button class="btn-nodo"
           [disabled]="politica?.estado === 'PUBLICADA'"
-          (click)="editarCarril(carril)"
-          matTooltip="Editar carril">
-          <mat-icon style="font-size:16px">edit</mat-icon>
+          (click)="agregarNodo(item.tipo, item.etiqueta)"
+          [matTooltip]="'Agregar: ' + item.etiqueta">
+          <span class="nodo-dot" [style.background]="getNodoDotColor(item.tipo)"></span>
+          <mat-icon>{{ item.icono }}</mat-icon>
+          <span>{{ item.etiqueta }}</span>
         </button>
+
+        <div class="paleta-seccion-header" style="margin-top:12px">
+          <span class="paleta-titulo">Carriles</span>
+        </div>
+
+        <div *ngFor="let carril of politica?.carriles" class="carril-item">
+          <mat-icon class="carril-icon">{{ carril.horizontal ? 'view_column' : 'table_rows' }}</mat-icon>
+          <span class="carril-nombre">{{ carril.nombre }}</span>
+          <button mat-icon-button class="btn-editar-carril"
+            [disabled]="politica?.estado === 'PUBLICADA'"
+            (click)="editarCarril(carril)"
+            matTooltip="Editar carril">
+            <mat-icon style="font-size:15px">edit</mat-icon>
+          </button>
+        </div>
+
+        <p class="paleta-hint">Haz clic en un nodo del diagrama para ver sus propiedades.</p>
       </div>
-      <mat-divider></mat-divider>
-      <p class="paleta-hint">Haz clic en un nodo del diagrama para editar sus propiedades.</p>
     </div>
+
+    <!-- Botón colapsar / expandir paleta -->
+    <button class="btn-toggle-paleta" (click)="paletaColapsada = !paletaColapsada"
+      [matTooltip]="paletaColapsada ? 'Mostrar paleta' : 'Ocultar paleta'">
+      <mat-icon>{{ paletaColapsada ? 'chevron_right' : 'chevron_left' }}</mat-icon>
+    </button>
 
     <!-- Lienzo maxGraph -->
     <div class="lienzo-wrapper">
       <div #graphContainer class="lienzo"></div>
+      <span class="lienzo-hint">🔍 Rueda = zoom &nbsp;|&nbsp; ␣ + arrastrar = mover lienzo &nbsp;|&nbsp; Arrastrar en vacío = selección múltiple</span>
     </div>
 
     <!-- CU-05 y CU-06: Panel propiedades del nodo -->

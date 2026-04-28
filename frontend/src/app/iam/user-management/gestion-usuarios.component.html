@@ -12,7 +12,7 @@
   <!-- Tabla de usuarios -->
   <mat-card>
     <mat-card-content>
-      <mat-progress-bar *ngIf="cargando" mode="indeterminate"></mat-progress-bar>
+      <ng-container *ngIf="usuarios$ | async as listaUsuarios; else cargandoTpl">
 
       <table mat-table [dataSource]="listaUsuarios" class="tabla-completa">
 
@@ -81,9 +81,16 @@
         <tr mat-row *matRowDef="let row; columns: columnasMostradas;"></tr>
       </table>
 
-      <div *ngIf="!cargando && listaUsuarios.length === 0" class="sin-datos">
+      <div *ngIf="listaUsuarios.length === 0" class="sin-datos">
         No hay usuarios registrados.
       </div>
+
+      </ng-container>
+
+      <ng-template #cargandoTpl>
+        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+      </ng-template>
+
     </mat-card-content>
   </mat-card>
 

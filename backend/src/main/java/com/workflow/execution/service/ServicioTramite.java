@@ -1,6 +1,9 @@
 package com.workflow.execution.service;
 
+import com.workflow.consulta.model.Consulta;
+import com.workflow.consulta.repository.ConsultaRepository;
 import com.workflow.execution.dto.RespuestaPaso;
+import com.workflow.execution.dto.RespuestaPasoCliente;
 import com.workflow.execution.dto.RespuestaTramite;
 import com.workflow.execution.dto.SolicitudCompletarPaso;
 import com.workflow.execution.dto.SolicitudCrearTramite;
@@ -20,10 +23,14 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
+import java.io.IOException;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 @RequiredArgsConstructor
@@ -31,7 +38,9 @@ public class ServicioTramite {
 
   private final TramiteRepository tramiteRepository;
   private final PoliticaRepository politicaRepository;
+  private final ConsultaRepository consultaRepository;
   private final SimpMessagingTemplate mensajeria;
+  private final ServicioArchivos servicioArchivos;
 
   public RespuestaTramite crearTramite(SolicitudCrearTramite solicitud, String correoIniciador) {
     Politica politica = politicaRepository.findById(solicitud.getPoliticaId())
@@ -47,6 +56,7 @@ public class ServicioTramite {
         .politicaId(politica.getId())
         .nombrePolitica(politica.getNombre())
         .iniciadoPor(correoIniciador)
+        .consultaId(solicitud.getConsultaId())
         .estado(EstadoTramite.ACTIVO)
         .pasos(pasos)
         .build();
@@ -68,11 +78,13 @@ public class ServicioTramite {
   }
 
   public List<RespuestaTramite> listarTramitesPorAsesor(String correo) {
+    // Devuelve todos los trámites activos con al menos un paso no completado,
+    // enriquecidos con los datos del cliente de la consulta vinculada.
     return tramiteRepository.findByEstado(EstadoTramite.ACTIVO)
         .stream()
-        .filter(t -> t.getPasos().stream().anyMatch(
-            p -> correo.equals(p.getAsignadoA()) && p.getEstado() != EstadoPaso.COMPLETADO))
-        .map(this::mapearARespuesta)
+        .filter(t -> t.getPasos().stream()
+            .anyMatch(p -> p.getEstado() != EstadoPaso.COMPLETADO))
+        .map(this::mapearARespuestaEnriquecida)
         .collect(Collectors.toList());
   }
 
@@ -85,6 +97,7 @@ public class ServicioTramite {
               .nodoId(n.getId())
               .etiquetaNodo(n.getEtiqueta())
               .carrilNombre(nombreCarril)
+              .tipoNodo(n.getTipo())
               .estado(EstadoPaso.PENDIENTE)
               .asignadoEn(Instant.now())
               .build();
@@ -100,7 +113,24 @@ public class ServicioTramite {
         .orElse("Sin departamento");
   }
 
+  /** Mapeo básico sin datos de consulta (uso interno). */
   private RespuestaTramite mapearARespuesta(Tramite tramite) {
+    return mapearARespuestaConConsulta(tramite, null);
+  }
+
+  /** Mapeo enriquecido: busca la consulta vinculada y agrega datos del cliente. */
+  private RespuestaTramite mapearARespuestaEnriquecida(Tramite tramite) {
+    Consulta consulta = null;
+    if (tramite.getConsultaId() != null) {
+      consulta = consultaRepository.findById(tramite.getConsultaId()).orElse(null);
+    } else {
+      // Fallback: buscar por tramiteId en consultas (datos históricos sin consultaId)
+      consulta = consultaRepository.findByTramiteId(tramite.getId()).orElse(null);
+    }
+    return mapearARespuestaConConsulta(tramite, consulta);
+  }
+
+  private RespuestaTramite mapearARespuestaConConsulta(Tramite tramite, Consulta consulta) {
     List<RespuestaPaso> pasos = tramite.getPasos().stream()
         .map(p -> RespuestaPaso.builder()
             .nodoId(p.getNodoId())
@@ -110,12 +140,22 @@ public class ServicioTramite {
             .estado(p.getEstado())
             .asignadoEn(p.getAsignadoEn())
             .completadoEn(p.getCompletadoEn())
+            .datosFormulario(p.getDatosFormulario())
             .build())
         .collect(Collectors.toList());
 
-    return RespuestaTramite.builder()
+    RespuestaTramite.RespuestaTramiteBuilder builder = RespuestaTramite.builder()
         .id(tramite.getId())
         .politicaId(tramite.getPoliticaId())
+        .consultaId(tramite.getConsultaId());
+
+    if (consulta != null) {
+      builder.clienteNombre(consulta.getClienteNombre())
+             .clienteCorreo(consulta.getClienteCorreo())
+             .descripcionConsulta(consulta.getDescripcion());
+    }
+
+    return builder
         .nombrePolitica(tramite.getNombrePolitica())
         .iniciadoPor(tramite.getIniciadoPor())
         .estado(tramite.getEstado())
@@ -130,7 +170,176 @@ public class ServicioTramite {
   public RespuestaTramite obtenerTramite(String tramiteId) {
     Tramite tramite = tramiteRepository.findById(tramiteId)
         .orElseThrow(() -> new RuntimeException("Trámite no encontrado"));
-    return mapearARespuesta(tramite);
+    return mapearARespuestaEnriquecida(tramite);
+  }
+
+  /**
+   * CU-12/13: Cambia el estado de un paso manualmente (PENDIENTE/EN_PROGRESO/BLOQUEADO)
+   * sin avanzar el motor de flujo. Para completar y avanzar, usar completarPaso().
+   */
+  public RespuestaTramite cambiarEstadoPaso(String tramiteId, String nodoId, EstadoPaso nuevoEstado) {
+    if (nuevoEstado == EstadoPaso.COMPLETADO) {
+      throw new RuntimeException("Para completar un paso usa POST /completar — este endpoint solo permite PENDIENTE, EN_PROGRESO o BLOQUEADO");
+    }
+
+    Tramite tramite = tramiteRepository.findById(tramiteId)
+        .orElseThrow(() -> new RuntimeException("Trámite no encontrado"));
+
+    if (tramite.getEstado() != EstadoTramite.ACTIVO) {
+      throw new RuntimeException("El trámite no está activo");
+    }
+
+    PasoTramite paso = tramite.getPasos().stream()
+        .filter(p -> p.getNodoId().equals(nodoId))
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("Paso no encontrado en el trámite"));
+
+    paso.setEstado(nuevoEstado);
+    tramiteRepository.save(tramite);
+
+    RespuestaTramite respuesta = mapearARespuestaEnriquecida(tramite);
+    mensajeria.convertAndSend("/topic/actividades", respuesta);
+    return respuesta;
+  }
+
+  // ── Cliente: vista reducida de su paso actual ─────────────────────────
+
+  /**
+   * Retorna únicamente el paso activo actual del cliente (EN_PROGRESO o el primero PENDIENTE).
+   * Incluye la definición del formulario desde la política para que el cliente sepa qué llenar.
+   */
+  public RespuestaPasoCliente obtenerPasoActualCliente(String tramiteId) {
+    Tramite tramite = tramiteRepository.findById(tramiteId)
+        .orElseThrow(() -> new RuntimeException("Trámite no encontrado"));
+
+    List<PasoTramite> pasos = tramite.getPasos();
+    int totalPasos = pasos.size();
+    long completados = pasos.stream().filter(p -> p.getEstado() == EstadoPaso.COMPLETADO).count();
+
+    if (tramite.getEstado() == EstadoTramite.COMPLETADO) {
+      return RespuestaPasoCliente.builder()
+          .tramiteCompletado(true)
+          .totalPasos(totalPasos)
+          .pasosCompletados((int) completados)
+          .pasoActualNumero(totalPasos)
+          .build();
+    }
+
+    PasoTramite pasoActivo = pasos.stream()
+        .filter(p -> p.getEstado() == EstadoPaso.EN_PROGRESO)
+        .findFirst()
+        .orElseGet(() -> pasos.stream()
+            .filter(p -> p.getEstado() == EstadoPaso.PENDIENTE)
+            .findFirst()
+            .orElse(null));
+
+    if (pasoActivo == null) {
+      return RespuestaPasoCliente.builder()
+          .tramiteCompletado(true)
+          .totalPasos(totalPasos)
+          .pasosCompletados((int) completados)
+          .pasoActualNumero(totalPasos)
+          .build();
+    }
+
+    int numeroPasoActual = pasos.indexOf(pasoActivo) + 1;
+
+    com.workflow.policy.model.Formulario formulario = null;
+    try {
+      Politica politica = politicaRepository.findById(tramite.getPoliticaId()).orElse(null);
+      if (politica != null) {
+        formulario = politica.getNodos().stream()
+            .filter(n -> n.getId().equals(pasoActivo.getNodoId()))
+            .map(Nodo::getFormulario)
+            .findFirst()
+            .orElse(null);
+      }
+    } catch (Exception ignored) { /* Política eliminada */ }
+
+    return RespuestaPasoCliente.builder()
+        .nodoId(pasoActivo.getNodoId())
+        .departamento(pasoActivo.getCarrilNombre())
+        .actividad(pasoActivo.getEtiquetaNodo())
+        .estado(pasoActivo.getEstado())
+        .formulario(formulario)
+        .datosEnviados(pasoActivo.getDatosFormulario())
+        .activadoEn(pasoActivo.getAsignadoEn())
+        .pasoActualNumero(numeroPasoActual)
+        .totalPasos(totalPasos)
+        .pasosCompletados((int) completados)
+        .tramiteCompletado(false)
+        .build();
+  }
+
+  /**
+   * El cliente envía los datos de su formulario (campos de texto, selección, etc.).
+   * Los datos se guardan en el paso y el asesor los ve en tiempo real.
+   */
+  public RespuestaPasoCliente enviarDatosFormularioCliente(String tramiteId, String nodoId,
+      Map<String, Object> datos) {
+    Tramite tramite = tramiteRepository.findById(tramiteId)
+        .orElseThrow(() -> new RuntimeException("Trámite no encontrado"));
+
+    if (tramite.getEstado() != EstadoTramite.ACTIVO) {
+      throw new RuntimeException("El trámite no está activo");
+    }
+
+    PasoTramite paso = tramite.getPasos().stream()
+        .filter(p -> p.getNodoId().equals(nodoId))
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("Paso no encontrado en el trámite"));
+
+    if (paso.getEstado() == EstadoPaso.COMPLETADO) {
+      throw new RuntimeException("Este paso ya fue completado");
+    }
+
+    Map<String, Object> datosActuales = paso.getDatosFormulario();
+    if (datosActuales == null) {
+      paso.setDatosFormulario(new java.util.HashMap<>(datos));
+    } else {
+      datosActuales.putAll(datos);
+    }
+
+    tramiteRepository.save(tramite);
+    mensajeria.convertAndSend("/topic/actividades", mapearARespuesta(tramite));
+    return obtenerPasoActualCliente(tramiteId);
+  }
+
+  /**
+   * El cliente sube un archivo (foto, documento) para un campo del formulario.
+   * La referencia se guarda en datosFormulario[campo] = "ruta/archivo.ext".
+   */
+  public RespuestaPasoCliente subirArchivoCliente(String tramiteId, String nodoId,
+      String campo, MultipartFile archivo) throws IOException {
+
+    Tramite tramite = tramiteRepository.findById(tramiteId)
+        .orElseThrow(() -> new RuntimeException("Trámite no encontrado"));
+
+    if (tramite.getEstado() != EstadoTramite.ACTIVO) {
+      throw new RuntimeException("El trámite no está activo");
+    }
+
+    PasoTramite paso = tramite.getPasos().stream()
+        .filter(p -> p.getNodoId().equals(nodoId))
+        .findFirst()
+        .orElseThrow(() -> new RuntimeException("Paso no encontrado en el trámite"));
+
+    if (paso.getEstado() == EstadoPaso.COMPLETADO) {
+      throw new RuntimeException("Este paso ya fue completado");
+    }
+
+    String rutaArchivo = servicioArchivos.guardarArchivo(tramiteId, nodoId, campo, archivo);
+
+    Map<String, Object> datos = paso.getDatosFormulario();
+    if (datos == null) {
+      datos = new HashMap<>();
+      paso.setDatosFormulario(datos);
+    }
+    datos.put(campo, rutaArchivo);
+
+    tramiteRepository.save(tramite);
+    mensajeria.convertAndSend("/topic/actividades", mapearARespuesta(tramite));
+    return obtenerPasoActualCliente(tramiteId);
   }
 
   public RespuestaTramite completarPaso(String tramiteId, String nodoId,

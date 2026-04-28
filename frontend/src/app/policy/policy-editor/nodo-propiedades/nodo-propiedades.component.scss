@@ -3,8 +3,8 @@
   flex-shrink: 0;
   overflow: hidden;
   background: white;
-  border-left: 1px solid rgba(0, 0, 0, 0.12);
-  transition: width 0.28s ease;
+  border-left: 1px solid #e2e8f0;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
   display: flex;
   flex-direction: column;
 }
@@ -18,22 +18,63 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 12px 16px;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding: 12px 12px 12px 16px;
+  border-bottom: 1px solid #e2e8f0;
   flex-shrink: 0;
+  background: linear-gradient(135deg, #f8f9fa, #f1f5f9);
 
   h3 {
     margin: 0;
-    font-size: 15px;
-    font-weight: 500;
+    font-size: 14px;
+    font-weight: 600;
+    color: #1e293b;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    letter-spacing: 0.1px;
+  }
+
+  button {
+    color: #64748b;
   }
 }
 
 .prop-tabs {
   flex: 1;
+}
+
+/* Estilo de las pestañas con ::ng-deep para acceder al DOM de Material */
+::ng-deep .prop-tabs {
+  .mat-mdc-tab-header {
+    background: #f8f9fa;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .mat-mdc-tab {
+    min-width: 0;
+    flex: 1;
+    opacity: 1;
+    color: #64748b;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .mat-mdc-tab.mdc-tab--active {
+    color: #3f51b5;
+  }
+
+  .mdc-tab-indicator__content--underline {
+    border-color: #3f51b5;
+    border-top-width: 3px;
+    border-radius: 3px 3px 0 0;
+  }
+
+  .mat-mdc-tab .mdc-tab__text-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: inherit;
+  }
 }
 
 .tab-content {
@@ -45,11 +86,22 @@
 
 .campo-label {
   margin: 0 0 8px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 11px;
+  font-weight: 700;
   text-transform: uppercase;
-  color: rgba(0, 0, 0, 0.54);
-  letter-spacing: 0.4px;
+  color: #94a3b8;
+  letter-spacing: 0.7px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  &::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: #e2e8f0;
+    margin-left: 4px;
+  }
 }
 
 .radio-flujo {

@@ -1,36 +1,55 @@
 <div class="panel-ia" [class.panel-ia-visible]="abierto">
+
   <div class="panel-ia-header">
-    <mat-icon>auto_awesome</mat-icon>
-    <span>Generar diagrama con Inteligencia Artificial</span>
-    <button mat-icon-button (click)="cerrado.emit()"><mat-icon>close</mat-icon></button>
+    <div class="ia-brand">
+      <div class="ia-avatar">
+        <mat-icon>auto_awesome</mat-icon>
+      </div>
+      <div class="ia-brand-text">
+        <span class="ia-title">Asistente de Diseño</span>
+        <span class="ia-subtitle">Describe tu proceso y construiré o editaré el diagrama</span>
+      </div>
+    </div>
+    <button class="btn-cerrar-ia" (click)="cerrado.emit()" matTooltip="Cerrar">
+      <mat-icon>keyboard_arrow_up</mat-icon>
+    </button>
   </div>
+
   <div class="panel-ia-body">
-    <mat-form-field appearance="outline" class="ia-input">
-      <mat-label>Describe el proceso que quieres modelar</mat-label>
-      <textarea matInput [(ngModel)]="promptIA" rows="3"
-        placeholder="Ej: Proceso de aprobación de solicitudes de crédito con validación de documentos, revisión del comité y notificación al cliente."></textarea>
-    </mat-form-field>
-    <div class="ia-actions">
-      <!-- CU-09: Voz -->
-      <button mat-icon-button
-        [color]="grabandoVoz ? 'warn' : 'primary'"
+    <div class="ia-input-row">
+
+      <button class="btn-mic" [class.grabando]="grabandoVoz"
         (click)="grabandoVoz ? detenerGrabacionVoz() : iniciarGrabacionVoz()"
         [matTooltip]="grabandoVoz ? 'Detener grabación' : 'Dictar por voz (Chrome/Edge)'"
         [disabled]="generandoIA">
         <mat-icon>{{ grabandoVoz ? 'mic_off' : 'mic' }}</mat-icon>
       </button>
-      <span *ngIf="grabandoVoz" class="grabando-indicator">
-        <mat-icon class="pulso">radio_button_checked</mat-icon> Escuchando...
-      </span>
 
-      <!-- CU-08: Texto -->
-      <button mat-raised-button color="primary" (click)="generarDiagramaConIA()"
+      <textarea class="ia-textarea" [(ngModel)]="promptIA" rows="2"
+        [disabled]="generandoIA"
+        placeholder="Ej: Proceso de aprobación de crédito con validación de documentos, revisión del comité y notificación al cliente..."></textarea>
+
+      <button class="btn-enviar" (click)="generarDiagramaConIA()"
         [disabled]="generandoIA || !promptIA.trim()">
-        <mat-spinner *ngIf="generandoIA" diameter="18"></mat-spinner>
-        <mat-icon *ngIf="!generandoIA">smart_toy</mat-icon>
-        {{ generandoIA ? 'Generando...' : 'Generar Diagrama' }}
+        <mat-spinner *ngIf="generandoIA" diameter="16" class="spinner-enviar"></mat-spinner>
+        <mat-icon *ngIf="!generandoIA">send</mat-icon>
+        <span>{{ generandoIA ? 'Diseñando...' : 'Diseñar flujo' }}</span>
       </button>
-      <span *ngIf="descripcionIA" class="ia-descripcion">{{ descripcionIA }}</span>
+
+    </div>
+
+    <div class="ia-footer" *ngIf="!grabandoVoz && !descripcionIA">
+      <mat-icon>tips_and_updates</mat-icon>
+      <span>Puedo crear un diagrama desde cero o modificar el existente según tus instrucciones.</span>
+    </div>
+    <div class="ia-footer ia-footer-mic" *ngIf="grabandoVoz">
+      <mat-icon class="pulso">radio_button_checked</mat-icon>
+      <span>Escuchando... habla ahora</span>
+    </div>
+    <div class="ia-footer ia-footer-ok" *ngIf="descripcionIA && !grabandoVoz">
+      <mat-icon>check_circle</mat-icon>
+      <span>{{ descripcionIA }}</span>
     </div>
   </div>
+
 </div>

@@ -19,4 +19,10 @@ public class RespuestaTramite {
   private List<RespuestaPaso> pasos;
   private Instant iniciadoEn;
   private Instant finalizadoEn;
+
+  // ── Datos de la consulta vinculada (presentes si el trámite viene de una consulta) ──
+  private String consultaId;
+  private String clienteNombre;
+  private String clienteCorreo;
+  private String descripcionConsulta;
 }

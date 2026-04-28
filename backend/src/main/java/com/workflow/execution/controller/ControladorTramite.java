@@ -1,6 +1,7 @@
 package com.workflow.execution.controller;
 
 import com.workflow.execution.dto.RespuestaTramite;
+import com.workflow.execution.dto.SolicitudCambiarEstadoPaso;
 import com.workflow.execution.dto.SolicitudCompletarPaso;
 import com.workflow.execution.dto.SolicitudCrearTramite;
 import com.workflow.execution.service.ServicioTramite;
@@ -37,18 +38,35 @@ public class ControladorTramite {
     return ResponseEntity.ok(servicioTramite.listarTramitesActivos());
   }
 
+  /** CU-12 — Monitor personal del asesor con datos del cliente vinculado. */
   @GetMapping("/mis-actividades")
   @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
   public ResponseEntity<List<RespuestaTramite>> misActividades(Authentication autenticacion) {
     return ResponseEntity.ok(servicioTramite.listarTramitesPorAsesor(autenticacion.getName()));
   }
 
+  /** CU-12 — Detalle de un trámite con datos del cliente y formularios por paso. */
   @GetMapping("/{id}")
   @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
   public ResponseEntity<RespuestaTramite> obtenerTramite(@PathVariable String id) {
     return ResponseEntity.ok(servicioTramite.obtenerTramite(id));
   }
 
+  /**
+   * CU-12/13 — El asesor cambia el estado de un paso a PENDIENTE, EN_PROGRESO o BLOQUEADO
+   * sin avanzar el motor de flujo.
+   */
+  @PatchMapping("/{tramiteId}/pasos/{nodoId}/estado")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
+  public ResponseEntity<RespuestaTramite> cambiarEstadoPaso(
+      @PathVariable String tramiteId,
+      @PathVariable String nodoId,
+      @Valid @RequestBody SolicitudCambiarEstadoPaso solicitud) {
+    return ResponseEntity.ok(
+        servicioTramite.cambiarEstadoPaso(tramiteId, nodoId, solicitud.getEstado()));
+  }
+
+  /** CU-13 — El asesor completa un paso y el motor avanza al siguiente departamento. */
   @PostMapping("/{tramiteId}/pasos/{nodoId}/completar")
   @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
   public ResponseEntity<RespuestaTramite> completarPaso(

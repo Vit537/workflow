@@ -142,3 +142,39 @@
     color: #2e7d32;
   }
 }
+
+.datos-cliente-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.dato-cliente-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+
+  .dato-campo {
+    font-weight: 600;
+    font-size: 13px;
+    min-width: 120px;
+    color: rgba(0, 0, 0, 0.7);
+  }
+
+  .dato-valor {
+    font-size: 14px;
+    color: rgba(0, 0, 0, 0.87);
+  }
+
+  .link-descarga {
+    font-size: 13px;
+  }
+}
+
+.estado-botones {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  align-items: center;
+}

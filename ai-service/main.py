@@ -594,3 +594,37 @@ async def generar_reporte_audio(audio: UploadFile = File(...)):
     resultado = await _generar_pipeline_desde_prompt(prompt_transcrito)
     resultado.promptTranscrito = prompt_transcrito
     return resultado
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MÓDULO DE CHATBOT (CU-16)
+# ══════════════════════════════════════════════════════════════════════════════
+
+class MensajeChatBot(BaseModel):
+    role: str   # 'system' | 'user' | 'assistant'
+    content: str
+
+class SolicitudChat(BaseModel):
+    mensajes: list[MensajeChatBot]
+
+class RespuestaChat(BaseModel):
+    respuesta: str
+
+@app.post("/api/ia/chat", response_model=RespuestaChat)
+async def chatbot(solicitud: SolicitudChat):
+    """Endpoint proxy de chatbot: recibe historial de mensajes y devuelve la respuesta del LLM."""
+    if not GROQ_API_KEY_CHAT:
+        raise HTTPException(status_code=503, detail="GROQ_API_KEY_CHAT no configurada")
+    try:
+        groq_client = GroqClient(api_key=GROQ_API_KEY_CHAT)
+        mensajes_groq = [{"role": m.role, "content": m.content} for m in solicitud.mensajes]
+        completion = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=mensajes_groq,
+            max_tokens=600,
+            temperature=0.4,
+        )
+        respuesta = completion.choices[0].message.content or "Sin respuesta."
+        return RespuestaChat(respuesta=respuesta)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))

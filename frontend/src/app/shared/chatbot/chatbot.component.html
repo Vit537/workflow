@@ -1,0 +1,79 @@
+<ng-container *ngIf="visible">
+  <!-- Panel del chat -->
+  <div class="chat-panel" *ngIf="abierto">
+    <!-- Header -->
+    <div class="chat-header">
+      <div class="chat-header-info">
+        <mat-icon class="bot-icon">smart_toy</mat-icon>
+        <div>
+          <span class="chat-title">Asistente Workflow</span>
+          <span class="chat-subtitle">{{ usuario?.rol === 'ADMIN' ? 'Administrador' : 'Asesor' }}</span>
+        </div>
+      </div>
+      <div class="chat-header-actions">
+        <button mat-icon-button matTooltip="Limpiar chat" (click)="limpiar()" class="btn-header">
+          <mat-icon>delete_sweep</mat-icon>
+        </button>
+        <button mat-icon-button (click)="toggle()" class="btn-header">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Mensajes -->
+    <div class="chat-body" #scrollArea>
+      <div
+        *ngFor="let msg of historial"
+        class="chat-msg"
+        [class.msg-user]="msg.rol === 'user'"
+        [class.msg-bot]="msg.rol === 'assistant'"
+      >
+        <mat-icon *ngIf="msg.rol === 'assistant'" class="msg-avatar">smart_toy</mat-icon>
+        <div class="msg-bubble">{{ msg.contenido }}</div>
+        <mat-icon *ngIf="msg.rol === 'user'" class="msg-avatar user-av">person</mat-icon>
+      </div>
+
+      <!-- Indicador de carga -->
+      <div class="chat-msg msg-bot" *ngIf="cargando">
+        <mat-icon class="msg-avatar">smart_toy</mat-icon>
+        <div class="msg-bubble typing">
+          <span></span><span></span><span></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div class="chat-footer">
+      <input
+        class="chat-input"
+        [(ngModel)]="textoEntrada"
+        (keydown)="onEnter($event)"
+        placeholder="Escribe tu pregunta..."
+        [disabled]="cargando"
+        autocomplete="off"
+      />
+      <button
+        mat-mini-fab
+        color="primary"
+        class="btn-send"
+        (click)="enviar()"
+        [disabled]="!textoEntrada.trim() || cargando"
+        matTooltip="Enviar"
+      >
+        <mat-icon>send</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Burbuja flotante -->
+  <button
+    class="chat-bubble"
+    mat-fab
+    color="primary"
+    (click)="toggle()"
+    [matTooltip]="abierto ? 'Cerrar asistente' : 'Asistente de ayuda'"
+    matTooltipPosition="left"
+  >
+    <mat-icon>{{ abierto ? 'close' : 'smart_toy' }}</mat-icon>
+  </button>
+</ng-container>

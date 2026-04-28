@@ -16,12 +16,19 @@ import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatDatepickerModule } from '@angular/material/datepicker';
 import { MatNativeDateModule } from '@angular/material/core';
+import { MatSelectModule } from '@angular/material/select';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
 
 import { WorkflowRoutingModule } from './workflow-routing-module';
 import { MonitorActividadesComponent } from './activity-monitor/monitor-actividades.component';
 import { BusquedaPoliticasComponent } from './policy-search/busqueda-politicas.component';
 import { DetallePoliticaComponent } from './policy-detail/detalle-politica.component';
 import { DetalleActividadComponent } from './activity-detail/detalle-actividad.component';
+import { KpiDashboardComponent } from './kpi-dashboard/kpi-dashboard.component';
+import { ListaConsultasComponent } from './consultas/lista-consultas.component';
+import { DetalleConsultaComponent } from './consultas/detalle-consulta.component';
+import { ReporteDinamicoComponent } from './reportes/reporte-dinamico.component';
 import { NodosPorCarrilPipe } from '../shared/pipes/nodos-por-carril.pipe';
 
 @NgModule({
@@ -30,6 +37,10 @@ import { NodosPorCarrilPipe } from '../shared/pipes/nodos-por-carril.pipe';
     BusquedaPoliticasComponent,
     DetallePoliticaComponent,
     DetalleActividadComponent,
+    KpiDashboardComponent,
+    ListaConsultasComponent,
+    DetalleConsultaComponent,
+    ReporteDinamicoComponent,
     NodosPorCarrilPipe,
   ],
   imports: [
@@ -52,6 +63,9 @@ import { NodosPorCarrilPipe } from '../shared/pipes/nodos-por-carril.pipe';
     MatCheckboxModule,
     MatDatepickerModule,
     MatNativeDateModule,
+    MatSelectModule,
+    MatMenuModule,
+    MatSnackBarModule,
   ],
 })
 export class WorkflowModule {}

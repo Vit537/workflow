@@ -25,18 +25,16 @@ export class GrafoIaService {
     const politica = this.estado.politica;
     if (!politica) return;
 
-    const esColumna = orientacion === 'vertical'
-      ? true
-      : orientacion === 'horizontal'
-        ? false
-        : (politica.carriles[0]?.horizontal ?? false);
+    // Default to column (vertical) layout; only use horizontal when explicitly requested
+    const esColumna = orientacion === 'horizontal' ? false : true;
 
-    const PADDING_X = 60;
+    const PADDING_X = 40;
     const PADDING_Y = 50;
     const GAP_X = 160;
     const GAP_Y = 110;
 
     if (!esColumna) {
+      // Fila (horizontal): nodos van de izquierda a derecha dentro de cada carril
       const colPorCarril = new Map<string, number>();
       politica.carriles.forEach(c => colPorCarril.set(c.id, 0));
 
@@ -47,6 +45,7 @@ export class GrafoIaService {
         nodo.posY = PADDING_Y;
       });
     } else {
+      // Columna (vertical): nodos van de arriba a abajo dentro de cada carril
       const rowPorCarril = new Map<string, number>();
       politica.carriles.forEach(c => rowPorCarril.set(c.id, 0));
 
@@ -65,27 +64,24 @@ export class GrafoIaService {
     const politica = this.estado.politica;
     if (!politica) return;
 
-    const PADDING_X = 60;
-    const PADDING_Y = 40;
-    const GAP_X = 160;
-    const ALTURA_CARRIL = 140;
+    // Column layout: each carril is a vertical column (horizontal = true)
+    // Nodes within each carril are stacked from top to bottom
+    const PADDING_X = 40;
+    const PADDING_Y = 50;
+    const GAP_Y = 110;
 
-    const filaCarril = new Map<string, number>();
-    diagrama.carriles.forEach((c, i) => filaCarril.set(c.id, i));
-
-    const colPorCarril = new Map<string, number>();
-    diagrama.carriles.forEach((c) => colPorCarril.set(c.id, 0));
+    const rowPorCarril = new Map<string, number>();
+    diagrama.carriles.forEach((c) => rowPorCarril.set(c.id, 0));
 
     const nodosConPosicion = diagrama.nodos.map((n) => {
-      const fila = filaCarril.get(n.carrilId) ?? 0;
-      const col = colPorCarril.get(n.carrilId) ?? 0;
-      colPorCarril.set(n.carrilId, col + 1);
+      const row = rowPorCarril.get(n.carrilId) ?? 0;
+      rowPorCarril.set(n.carrilId, row + 1);
       const ancho = n.ancho ?? 120;
       const alto = n.alto ?? 50;
       return {
         ...n,
-        posX: PADDING_X + col * GAP_X,
-        posY: PADDING_Y + fila * ALTURA_CARRIL + (ALTURA_CARRIL - alto) / 2,
+        posX: PADDING_X,
+        posY: PADDING_Y + row * GAP_Y,
         ancho,
         alto,
       };
@@ -95,8 +91,9 @@ export class GrafoIaService {
     politica.nodos = [];
     politica.conexiones = [];
 
-    diagrama.carriles.forEach((c) => {
-      politica.carriles.push({ id: c.id, nombre: c.nombre, orden: c.orden } as Carril);
+    diagrama.carriles.forEach((c, i) => {
+      // Always create as column (horizontal:true) — vertical swimlane columns
+      politica.carriles.push({ id: c.id, nombre: c.nombre, orden: i, horizontal: true } as Carril);
     });
 
     nodosConPosicion.forEach((n) => {
@@ -143,18 +140,22 @@ export class GrafoIaService {
     const politica = this.estado.politica;
     if (!politica) return;
 
-    const PADDING_X = 60;
-    const PADDING_Y = 40;
-    const GAP_X = 160;
-    const ALTURA_CARRIL = 140;
+    const PADDING_X = 40;
+    const PADDING_Y = 50;
+    const GAP_Y = 110;
 
     for (const accion of acciones) {
       switch (accion.tipo) {
 
         case 'AGREGAR_CARRIL': {
           const nombre: string = accion.datos['nombre'] ?? 'Nuevo carril';
+          // No crear si ya existe un carril con ese nombre (comparación sin distinguir mayúsculas)
+          const yaExiste = politica.carriles.some(
+            c => c.nombre.toLowerCase().trim() === nombre.toLowerCase().trim()
+          );
+          if (yaExiste) break;
           const orden = politica.carriles.length;
-          politica.carriles.push({ id: this.generarId(), nombre, orden } as Carril);
+          politica.carriles.push({ id: this.generarId(), nombre, orden, horizontal: true } as Carril);
           break;
         }
 
@@ -163,8 +164,7 @@ export class GrafoIaService {
           const carril = politica.carriles.find(c => c.nombre === carrilNombre)
             ?? politica.carriles[0];
           if (!carril) break;
-          const filaIdx = politica.carriles.findIndex(c => c.id === carril.id);
-          const col = politica.nodos.filter(n => n.carrilId === carril.id).length;
+          const nodoIdx = politica.nodos.filter(n => n.carrilId === carril.id).length;
           const tipo = (accion.datos['tipo'] ?? 'ACTIVIDAD') as TipoNodo;
           const ancho = (tipo === 'INICIO' || tipo === 'FIN') ? 40 : tipo === 'DECISION' ? 80 : 120;
           const alto  = (tipo === 'INICIO' || tipo === 'FIN') ? 40 : tipo === 'DECISION' ? 60 : 50;
@@ -174,8 +174,8 @@ export class GrafoIaService {
             tipo,
             tipoFlujo: (accion.datos['tipoFlujo'] ?? 'LINEAL') as TipoFlujo,
             condiciones: accion.datos['condiciones'] ?? [],
-            posX: PADDING_X + col * GAP_X,
-            posY: PADDING_Y + filaIdx * ALTURA_CARRIL + (ALTURA_CARRIL - alto) / 2,
+            posX: PADDING_X,
+            posY: PADDING_Y + nodoIdx * GAP_Y,
             ancho,
             alto,
             carrilId: carril.id,

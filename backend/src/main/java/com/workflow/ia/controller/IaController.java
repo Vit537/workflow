@@ -21,4 +21,10 @@ public class IaController {
         Map<?, ?> resultado = iaProxyService.generarDiagrama(body);
         return ResponseEntity.ok(resultado);
     }
+
+    @PostMapping("/chat")
+    public ResponseEntity<Map<?, ?>> chat(@RequestBody Map<?, ?> body) {
+        Map<?, ?> resultado = iaProxyService.chatMensaje(body);
+        return ResponseEntity.ok(resultado);
+    }
 }

@@ -13,21 +13,12 @@ import { MatInputModule } from '@angular/material/input';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatProgressBarModule } from '@angular/material/progress-bar';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
-import { MatTabsModule } from '@angular/material/tabs';
-import { MatRadioModule } from '@angular/material/radio';
-import { MatSelectModule } from '@angular/material/select';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { MatDividerModule } from '@angular/material/divider';
 
 import { PolicyRoutingModule } from './policy-routing-module';
 import { GestionPoliticasComponent } from './policy-list/gestion-politicas.component';
-import { EditorPoliticaComponent } from './policy-editor/editor-politica.component';
-import { NodoPropiedadesComponent } from './policy-editor/nodo-propiedades/nodo-propiedades.component';
-import { PanelPublicarComponent } from './policy-editor/panel-publicar/panel-publicar.component';
-import { PanelIaComponent } from './policy-editor/panel-ia/panel-ia.component';
 
 @NgModule({
-  declarations: [GestionPoliticasComponent, EditorPoliticaComponent, NodoPropiedadesComponent, PanelPublicarComponent, PanelIaComponent],
+  declarations: [GestionPoliticasComponent],
   imports: [
     CommonModule,
     ReactiveFormsModule,
@@ -45,11 +36,6 @@ import { PanelIaComponent } from './policy-editor/panel-ia/panel-ia.component';
     MatSnackBarModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
-    MatTabsModule,
-    MatRadioModule,
-    MatSelectModule,
-    MatSlideToggleModule,
-    MatDividerModule,
   ],
 })
 export class PolicyModule {}

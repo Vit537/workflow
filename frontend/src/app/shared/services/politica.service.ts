@@ -1,7 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
-import { timeout } from 'rxjs/operators';
+import { Observable, timeout } from 'rxjs';
 import { Politica, PoliticaResumen, EstadoPolitica, Carril, Nodo, Conexion } from '../models/policy.model';
 
 export interface SolicitudCrearPolitica {
@@ -23,6 +22,7 @@ export interface SolicitudActualizarDiagrama {
 @Injectable({ providedIn: 'root' })
 export class PoliticaService {
   private readonly urlApi = 'http://localhost:8080/api/politicas';
+  private cachePoliticas: PoliticaResumen[] = [];
 
   constructor(private http: HttpClient) {}
 
@@ -31,7 +31,17 @@ export class PoliticaService {
     if (estado) {
       params = params.set('estado', estado);
     }
-    return this.http.get<PoliticaResumen[]>(this.urlApi, { params }).pipe(timeout(10000));
+    return this.http.get<PoliticaResumen[]>(this.urlApi, { params }).pipe(
+      timeout({ first: 10000 })
+    );
+  }
+
+  obtenerPoliticasCache(): PoliticaResumen[] {
+    return [...this.cachePoliticas];
+  }
+
+  guardarPoliticasCache(politicas: PoliticaResumen[]): void {
+    this.cachePoliticas = [...politicas];
   }
 
   obtenerPolitica(id: string): Observable<Politica> {
@@ -58,9 +68,9 @@ export class PoliticaService {
     return this.http.delete<void>(`${this.urlApi}/${id}`);
   }
 
-  buscarPoliticasPublicadas(q?: string): Observable<PoliticaResumen[]> {
+  buscarPoliticasPublicadas(q?: string): Observable<Politica[]> {
     let params = new HttpParams();
     if (q) params = params.set('q', q);
-    return this.http.get<PoliticaResumen[]>(`${this.urlApi}/buscar`, { params });
+    return this.http.get<Politica[]>(`${this.urlApi}/buscar`, { params });
   }
 }

@@ -1,9 +1,10 @@
 import { Component, OnInit } from '@angular/core';
 import { FormControl } from '@angular/forms';
 import { Router } from '@angular/router';
-import { debounceTime, distinctUntilChanged } from 'rxjs/operators';
+import { Observable, catchError, of, switchMap } from 'rxjs';
+import { debounceTime, distinctUntilChanged, startWith } from 'rxjs/operators';
 import { PoliticaService } from '../../shared/services/politica.service';
-import { PoliticaResumen } from '../../shared/models/policy.model';
+import { Politica } from '../../shared/models/policy.model';
 
 @Component({
   selector: 'app-busqueda-politicas',
@@ -13,10 +14,7 @@ import { PoliticaResumen } from '../../shared/models/policy.model';
 })
 export class BusquedaPoliticasComponent implements OnInit {
   busqueda = new FormControl('');
-  politicas: PoliticaResumen[] = [];
-  cargando = false;
-  sinResultados = false;
-
+  politicas$!: Observable<Politica[]>;
   columnas = ['nombre', 'descripcion', 'creadoPor', 'acciones'];
 
   constructor(
@@ -25,30 +23,19 @@ export class BusquedaPoliticasComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    this.buscar('');
-
-    this.busqueda.valueChanges.pipe(
+    this.politicas$ = this.busqueda.valueChanges.pipe(
+      startWith(''),
       debounceTime(400),
-      distinctUntilChanged()
-    ).subscribe(q => this.buscar(q ?? ''));
+      distinctUntilChanged(),
+      switchMap((q) =>
+        this.politicaService.buscarPoliticasPublicadas(q ?? '').pipe(
+          catchError(() => of([]))
+        )
+      )
+    );
   }
 
-  buscar(q: string): void {
-    this.cargando = true;
-    this.sinResultados = false;
-    this.politicaService.buscarPoliticasPublicadas(q).subscribe({
-      next: (result) => {
-        this.politicas = result;
-        this.sinResultados = result.length === 0;
-        this.cargando = false;
-      },
-      error: () => {
-        this.cargando = false;
-      },
-    });
-  }
-
-  verDetalle(id: string): void {
-    this.router.navigate(['/workflow/politicas', id]);
+  verDetalle(id: string, politica: Politica): void {
+    this.router.navigate(['/workflow/politicas', id], { state: { politicaResumen: politica } });
   }
 }

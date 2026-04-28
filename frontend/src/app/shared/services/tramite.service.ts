@@ -25,6 +25,11 @@ export interface RespuestaTramite {
   pasos: RespuestaPaso[];
   iniciadoEn: string;
   finalizadoEn?: string;
+  // Datos del cliente vinculados desde la consulta
+  consultaId?: string;
+  clienteNombre?: string;
+  clienteCorreo?: string;
+  descripcionConsulta?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -37,6 +42,7 @@ export class TramiteService {
     return this.http.post<RespuestaTramite>(this.urlApi, { politicaId });
   }
 
+  /** Trámites asignados al asesor autenticado */
   misActividades(): Observable<RespuestaTramite[]> {
     return this.http.get<RespuestaTramite[]>(`${this.urlApi}/mis-actividades`);
   }
@@ -49,10 +55,27 @@ export class TramiteService {
     return this.http.get<RespuestaTramite>(`${this.urlApi}/${id}`);
   }
 
-  completarPaso(tramiteId: string, nodoId: string,
+  completarPaso(
+    tramiteId: string,
+    nodoId: string,
     solicitud: { condicionElegida?: string; datosFormulario?: Record<string, unknown> } = {}
   ): Observable<RespuestaTramite> {
     return this.http.post<RespuestaTramite>(
       `${this.urlApi}/${tramiteId}/pasos/${nodoId}/completar`, solicitud);
+  }
+
+  /** Cambia el estado de un paso a PENDIENTE / EN_PROGRESO / BLOQUEADO */
+  cambiarEstadoPaso(
+    tramiteId: string,
+    nodoId: string,
+    estado: 'PENDIENTE' | 'EN_PROGRESO' | 'BLOQUEADO'
+  ): Observable<RespuestaTramite> {
+    return this.http.patch<RespuestaTramite>(
+      `${this.urlApi}/${tramiteId}/pasos/${nodoId}/estado`, { estado });
+  }
+
+  /** URL para descargar un archivo subido por el cliente */
+  urlDescargaArchivo(tramiteId: string, nodoId: string, rutaRelativa: string): string {
+    return `${this.urlApi}/${tramiteId}/pasos/${nodoId}/archivos?rutaRelativa=${encodeURIComponent(rutaRelativa)}`;
   }
 }

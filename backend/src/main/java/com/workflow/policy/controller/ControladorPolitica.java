@@ -83,7 +83,7 @@ public class ControladorPolitica {
 
   @GetMapping("/buscar")
   @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
-  public ResponseEntity<List<RespuestaPoliticaResumen>> buscarPoliticas(
+  public ResponseEntity<List<RespuestaPolitica>> buscarPoliticas(
       @RequestParam(required = false) String q) {
     return ResponseEntity.ok(servicioPolitica.buscarPoliticasPublicadas(q));
   }

@@ -1,5 +1,6 @@
 package com.workflow.policy.service;
 
+import com.workflow.policy.dto.PoliticaResumenProjection;
 import com.workflow.policy.dto.RespuestaPolitica;
 import com.workflow.policy.dto.RespuestaPoliticaResumen;
 import com.workflow.policy.dto.SolicitudActualizarDiagrama;
@@ -21,16 +22,16 @@ public class ServicioPolitica {
   private final PoliticaRepository politicaRepository;
 
   public List<RespuestaPoliticaResumen> listarPoliticas() {
-    return politicaRepository.findAll()
+    return politicaRepository.findAllResumen()
         .stream()
-        .map(this::mapearAResumen)
+      .map(this::mapearProyeccionAResumen)
         .collect(Collectors.toList());
   }
 
   public List<RespuestaPoliticaResumen> listarPoliticasPorEstado(EstadoPolitica estado) {
-    return politicaRepository.findByEstado(estado)
+    return politicaRepository.findResumenByEstado(estado)
         .stream()
-        .map(this::mapearAResumen)
+      .map(this::mapearProyeccionAResumen)
         .collect(Collectors.toList());
   }
 
@@ -109,14 +110,15 @@ public class ServicioPolitica {
 
   // ── CU-11: búsqueda para asesor ────────────────────────────────────────
 
-  public List<RespuestaPoliticaResumen> buscarPoliticasPublicadas(String keyword) {
+  public List<RespuestaPolitica> buscarPoliticasPublicadas(String keyword) {
     if (keyword == null || keyword.isBlank()) {
-      return listarPoliticasPorEstado(EstadoPolitica.PUBLICADA);
+      return politicaRepository.findByEstado(EstadoPolitica.PUBLICADA)
+          .stream().map(this::mapearARespuesta).collect(Collectors.toList());
     }
     return politicaRepository
         .findByNombreContainingIgnoreCaseAndEstado(keyword, EstadoPolitica.PUBLICADA)
         .stream()
-        .map(this::mapearAResumen)
+        .map(this::mapearARespuesta)
         .collect(Collectors.toList());
   }
 
@@ -136,6 +138,18 @@ public class ServicioPolitica {
         .actualizadoEn(politica.getActualizadoEn())
         .build();
   }
+
+        private RespuestaPoliticaResumen mapearProyeccionAResumen(PoliticaResumenProjection politica) {
+          return RespuestaPoliticaResumen.builder()
+          .id(politica.getId())
+          .nombre(politica.getNombre())
+          .descripcion(politica.getDescripcion())
+          .estado(politica.getEstado())
+          .creadoPor(politica.getCreadoPor())
+          .creadoEn(politica.getCreadoEn())
+          .actualizadoEn(politica.getActualizadoEn())
+          .build();
+        }
 
   private RespuestaPolitica mapearARespuesta(Politica politica) {
     return RespuestaPolitica.builder()

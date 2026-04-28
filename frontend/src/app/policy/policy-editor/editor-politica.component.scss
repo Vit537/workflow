@@ -72,53 +72,97 @@
 }
 
 .paleta {
-  width: 140px;
+  width: 168px;
   flex-shrink: 0;
-  background: #fafafa;
-  border-right: 1px solid rgba(0, 0, 0, 0.12);
-  padding: 12px 8px;
+  background: #f8f9fa;
+  border-right: 1px solid #e2e8f0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  overflow-y: auto;
+  overflow: hidden;
+  transition: width 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 
-  .paleta-titulo {
-    margin: 0 0 8px;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    color: rgba(0, 0, 0, 0.54);
-    letter-spacing: 0.5px;
+  &.paleta-colapsada {
+    width: 0;
+  }
+
+  .paleta-inner {
+    width: 168px;
+    padding: 10px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .paleta-seccion-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 8px 0 6px;
+    padding: 0 2px;
+
+    &:first-child { margin-top: 4px; }
+
+    .paleta-titulo {
+      flex: 1;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #94a3b8;
+      letter-spacing: 0.8px;
+    }
   }
 
   .carril-item {
     display: flex;
     align-items: center;
-    gap: 4px;
-    padding: 2px 0;
+    gap: 6px;
+    padding: 5px 6px;
+    border-radius: 6px;
+    transition: background 0.15s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
 
     .carril-icon {
-      font-size: 16px;
-      height: 16px;
-      width: 16px;
-      color: rgba(0, 0, 0, 0.45);
+      font-size: 15px;
+      height: 15px;
+      width: 15px;
+      color: #64748b;
       flex-shrink: 0;
     }
 
     .carril-nombre {
       flex: 1;
       font-size: 12px;
+      color: #475569;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
 
     .btn-editar-carril {
-      width: 24px;
-      height: 24px;
-      line-height: 24px;
+      width: 22px;
+      height: 22px;
+      line-height: 22px;
       flex-shrink: 0;
+      opacity: 0;
+      transition: opacity 0.15s;
     }
+
+    &:hover .btn-editar-carril {
+      opacity: 1;
+    }
+  }
+
+  .paleta-hint {
+    font-size: 10.5px;
+    color: #94a3b8;
+    text-align: center;
+    margin: 8px 2px 0;
+    line-height: 1.5;
   }
 }
 
@@ -126,10 +170,29 @@
   width: 100%;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-start;
   font-size: 12px;
   padding: 0 8px;
+  height: 38px;
+  border-radius: 8px !important;
+  border: 1px solid #e2e8f0 !important;
+  background: white !important;
+  color: #334155 !important;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s !important;
+
+  &:not([disabled]):hover {
+    background: #f1f5f9 !important;
+    border-color: #cbd5e1 !important;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08) !important;
+  }
+
+  .nodo-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
 
   mat-icon {
     font-size: 16px;
@@ -138,19 +201,61 @@
   }
 }
 
+// Toggle button de la paleta (ubicado en editor-body)
+.btn-toggle-paleta {
+  width: 20px;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  border-right: 1px solid #e2e8f0;
+  transition: background 0.15s;
+  padding: 0;
+  color: #64748b;
+
+  &:hover {
+    background: #e2e8f0;
+  }
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
 .lienzo-wrapper {
   flex: 1;
-  overflow: auto;
+  overflow: hidden;
   background: #f0f0f0;
+  position: relative;
 }
 
 .lienzo {
   width: 100%;
-  min-height: 600px;
   height: 100%;
   background: white;
   cursor: default;
   position: relative; // necesario para que los badges se posicionen correctamente
+}
+
+.lienzo-hint {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  font-size: 11px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
 }
 
 /* ── Panel propiedades del nodo (CU-05 y CU-06) ── */

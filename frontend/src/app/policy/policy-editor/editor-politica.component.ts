@@ -50,6 +50,7 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
 
   // Nodo seleccionado
   nodoSeleccionado: Nodo | null = null;
+  paletaColapsada = false;
   haySeleccion = false;
 
   // Panel IA
@@ -174,6 +175,7 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
         if (!celdaId) { this.nodoSeleccionado = null; this.cdr.detectChanges(); return; }
         const nodo = this.politica?.nodos.find((n) => n.id === celdaId);
         this.nodoSeleccionado = nodo ?? null;
+        if (nodo) { this.panelIaAbierto = false; }
         this.cdr.detectChanges();
       },
       (haySel) => { this.haySeleccion = haySel; this.cdr.detectChanges(); },
@@ -294,6 +296,22 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   }
 
   volverALista(): void { this.router.navigate(['/policy']); }
+
+  getNodoDotColor(tipo: string): string {
+    const colors: Record<string, string> = {
+      INICIO: '#22c55e', ACTIVIDAD: '#3b82f6', DECISION: '#f59e0b',
+      COMPUERTA_PARALELA: '#a855f7', COMPUERTA_UNION: '#a855f7', FIN: '#ef4444',
+    };
+    return colors[tipo] ?? '#94a3b8';
+  }
+
+  toggleIA(): void {
+    this.panelIaAbierto = !this.panelIaAbierto;
+    if (this.panelIaAbierto) {
+      this.nodoSeleccionado = null;
+      this.cdr.detectChanges();
+    }
+  }
 
   private colorParaUsuario(correo: string): string {
     if (!this.coloresRemoto.has(correo)) {

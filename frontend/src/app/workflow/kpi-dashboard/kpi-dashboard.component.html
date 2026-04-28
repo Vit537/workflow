@@ -1,0 +1,153 @@
+<div class="kpi-container">
+
+  <div class="kpi-header">
+    <div>
+      <h1>Dashboard de KPIs</h1>
+      <p>Rendimiento del motor de workflow por actividad</p>
+    </div>
+    <button mat-icon-button (click)="cargar()" matTooltip="Recargar">
+      <mat-icon>refresh</mat-icon>
+    </button>
+  </div>
+
+  <ng-container *ngIf="kpi$ | async as kpi; else cargandoTpl">
+
+  <!-- Tarjetas de resumen -->
+  <div class="resumen-cards" *ngIf="kpi">
+    <mat-card class="stat-card activos">
+      <mat-card-content>
+        <mat-icon>pending_actions</mat-icon>
+        <div class="stat-valor">{{ kpi.tramitesActivos }}</div>
+        <div class="stat-label">Trámites activos</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card completados">
+      <mat-card-content>
+        <mat-icon>check_circle_outline</mat-icon>
+        <div class="stat-valor">{{ kpi.tramitesCompletados }}</div>
+        <div class="stat-label">Completados</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card cancelados">
+      <mat-card-content>
+        <mat-icon>cancel</mat-icon>
+        <div class="stat-valor">{{ kpi.tramitesCancelados }}</div>
+        <div class="stat-label">Cancelados</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card cuellos">
+      <mat-card-content>
+        <mat-icon>warning_amber</mat-icon>
+        <div class="stat-valor">{{ contarCuellos(kpi) }}</div>
+        <div class="stat-label">Cuellos de botella</div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="stat-card promedio">
+      <mat-card-content>
+        <mat-icon>schedule</mat-icon>
+        <div class="stat-valor">{{ formatearTiempo(promedioGeneral(kpi)) }}</div>
+        <div class="stat-label">Tiempo promedio general</div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Leyenda cuellos de botella -->
+  <div class="leyenda-cuellos" *ngIf="kpi && contarCuellos(kpi) > 0">
+    <mat-icon class="leyenda-icono">warning_amber</mat-icon>
+    <span>
+      <strong>Cuello de botella:</strong> actividades cuyo tiempo promedio supera el
+      <strong>130 %</strong> del promedio general
+      (umbral: <strong>{{ formatearTiempo(promedioGeneral(kpi) * 1.3) }}</strong>).
+      Estas actividades retrasan el proceso.
+    </span>
+  </div>
+
+  <!-- Tabla de KPI por nodo -->
+  <mat-card class="tabla-card" *ngIf="kpi && kpi.kpiPorNodo.length > 0">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>bar_chart</mat-icon> Rendimiento por actividad
+      </mat-card-title>
+      <mat-card-subtitle>Ordenado por mayor tiempo promedio</mat-card-subtitle>
+    </mat-card-header>
+    <mat-card-content>
+      <mat-table [dataSource]="kpi.kpiPorNodo" class="tabla-kpi mat-elevation-z1">
+
+        <ng-container matColumnDef="etiqueta">
+          <mat-header-cell *matHeaderCellDef>Actividad</mat-header-cell>
+          <mat-cell *matCellDef="let n">
+            <mat-icon *ngIf="n.cuelloDeBotella" class="icono-cuello"
+              matTooltip="Cuello de botella — supera el 130% del promedio general">warning</mat-icon>
+            <span [class.texto-cuello]="n.cuelloDeBotella">{{ n.etiquetaNodo }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="carril">
+          <mat-header-cell *matHeaderCellDef>Departamento</mat-header-cell>
+          <mat-cell *matCellDef="let n">{{ n.carrilNombre }}</mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="completados">
+          <mat-header-cell *matHeaderCellDef>
+            <mat-icon class="col-icon" matTooltip="Instancias completadas">check_circle</mat-icon> Completados
+          </mat-header-cell>
+          <mat-cell *matCellDef="let n">
+            <span class="badge badge-ok">{{ n.completados }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="pendientes">
+          <mat-header-cell *matHeaderCellDef>
+            <mat-icon class="col-icon" matTooltip="Instancias aún en proceso">hourglass_top</mat-icon> Pendientes
+          </mat-header-cell>
+          <mat-cell *matCellDef="let n">
+            <span class="badge" [class.badge-warn]="n.pendientes > 0">{{ n.pendientes }}</span>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="tiempo">
+          <mat-header-cell *matHeaderCellDef>
+            <mat-icon class="col-icon" matTooltip="Tiempo promedio de resolución">timer</mat-icon> Tiempo prom.
+          </mat-header-cell>
+          <mat-cell *matCellDef="let n" [class.celda-cuello]="n.cuelloDeBotella">
+            <strong>{{ formatearTiempo(n.tiempoPromedioSegundos) }}</strong>
+          </mat-cell>
+        </ng-container>
+
+        <ng-container matColumnDef="barra">
+          <mat-header-cell *matHeaderCellDef>Comparación</mat-header-cell>
+          <mat-cell *matCellDef="let n">
+            <div class="barra-container" matTooltip="Relativo al nodo más lento">
+              <div class="barra-fill"
+                [style.width.%]="porcentajeBarra(n.tiempoPromedioSegundos, maxTiempo(kpi))"
+                [class.barra-cuello]="n.cuelloDeBotella"
+                [class.barra-normal]="!n.cuelloDeBotella">
+              </div>
+              <span class="barra-pct">{{ porcentajeBarra(n.tiempoPromedioSegundos, maxTiempo(kpi)) }}%</span>
+            </div>
+          </mat-cell>
+        </ng-container>
+
+        <mat-header-row *matHeaderRowDef="columnas"></mat-header-row>
+        <mat-row *matRowDef="let row; columns: columnas;"
+          [class.fila-cuello]="row.cuelloDeBotella"></mat-row>
+      </mat-table>
+    </mat-card-content>
+  </mat-card>
+
+  <div *ngIf="kpi && kpi.kpiPorNodo.length === 0" class="vacio">
+    <mat-icon>bar_chart</mat-icon>
+    <p>No hay trámites ejecutados aún. Los KPIs aparecerán cuando se completen actividades.</p>
+  </div>
+
+  </ng-container>
+
+  <ng-template #cargandoTpl>
+    <mat-progress-bar mode="indeterminate" class="barra-carga"></mat-progress-bar>
+  </ng-template>
+
+</div>

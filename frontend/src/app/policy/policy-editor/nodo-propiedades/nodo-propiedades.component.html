@@ -1,12 +1,16 @@
 <div class="prop-header">
   <h3>{{ nodo?.etiqueta }}</h3>
-  <button mat-icon-button (click)="cerrado.emit()"><mat-icon>close</mat-icon></button>
+  <button mat-icon-button (click)="cerrado.emit()" matTooltip="Cerrar"><mat-icon>close</mat-icon></button>
 </div>
 
 <mat-tab-group [(selectedIndex)]="tabActiva" class="prop-tabs">
 
   <!-- TAB CU-05: Tipo de Flujo -->
-  <mat-tab label="Flujo">
+  <mat-tab>
+    <ng-template mat-tab-label>
+      <mat-icon style="font-size:16px;width:16px;height:16px;margin-right:4px">account_tree</mat-icon>
+      Flujo
+    </ng-template>
     <div class="tab-content">
 
       <!-- Nodos sin tipo de flujo configurable -->
@@ -75,7 +79,11 @@
   </mat-tab>
 
   <!-- TAB CU-06: Formulario del nodo (solo para ACTIVIDAD) -->
-  <mat-tab label="Formulario" *ngIf="nodo?.tipo === 'ACTIVIDAD'">
+  <mat-tab *ngIf="nodo?.tipo === 'ACTIVIDAD'">
+    <ng-template mat-tab-label>
+      <mat-icon style="font-size:16px;width:16px;height:16px;margin-right:4px">assignment</mat-icon>
+      Formulario
+    </ng-template>
     <div class="tab-content">
 
       <!-- Encabezado del formulario -->

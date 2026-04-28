@@ -12,14 +12,13 @@
     </mat-form-field>
   </div>
 
-  <mat-progress-bar *ngIf="cargando" mode="indeterminate" class="barra-carga"></mat-progress-bar>
-
-  <div *ngIf="sinResultados && !cargando" class="sin-resultados">
+  <ng-container *ngIf="politicas$ | async as politicas; else cargandoTpl">
+  <div *ngIf="politicas.length === 0" class="sin-resultados">
     <mat-icon>find_in_page</mat-icon>
     <p>No se encontraron políticas publicadas con ese criterio.</p>
   </div>
 
-  <mat-table [dataSource]="politicas" *ngIf="!sinResultados" class="tabla-politicas mat-elevation-z2">
+  <mat-table [dataSource]="politicas" *ngIf="politicas.length > 0" class="tabla-politicas mat-elevation-z2">
 
     <ng-container matColumnDef="nombre">
       <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
@@ -41,7 +40,7 @@
     <ng-container matColumnDef="acciones">
       <mat-header-cell *matHeaderCellDef></mat-header-cell>
       <mat-cell *matCellDef="let p">
-        <button mat-icon-button color="primary" (click)="verDetalle(p.id)" matTooltip="Ver detalle">
+        <button mat-icon-button color="primary" (click)="verDetalle(p.id, p)" matTooltip="Ver detalle">
           <mat-icon>visibility</mat-icon>
         </button>
       </mat-cell>
@@ -49,7 +48,18 @@
 
     <mat-header-row *matHeaderRowDef="columnas"></mat-header-row>
     <mat-row *matRowDef="let row; columns: columnas;" class="fila-politica"
-      (click)="verDetalle(row.id)"></mat-row>
+      (click)="verDetalle(row.id, row)"></mat-row>
   </mat-table>
+
+  <div *ngIf="politicas.length === 0" class="sin-resultados">
+    <mat-icon>find_in_page</mat-icon>
+    <p>No se encontraron políticas publicadas con ese criterio.</p>
+  </div>
+
+  </ng-container>
+
+  <ng-template #cargandoTpl>
+    <mat-progress-bar mode="indeterminate" class="barra-carga"></mat-progress-bar>
+  </ng-template>
 
 </div>

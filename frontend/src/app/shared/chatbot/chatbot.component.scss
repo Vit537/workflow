@@ -1,0 +1,259 @@
+/* ── Burbuja flotante ─────────────────────────────────────── */
+.chat-bubble {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 9999;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  transition: transform 0.2s ease;
+
+  &:hover {
+    transform: scale(1.08);
+  }
+
+  mat-icon {
+    font-size: 26px;
+    width: 26px;
+    height: 26px;
+  }
+}
+
+/* ── Panel del chat ───────────────────────────────────────── */
+.chat-panel {
+  position: fixed;
+  bottom: 88px;
+  right: 24px;
+  z-index: 9998;
+  width: 360px;
+  max-height: 520px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  background: #ffffff;
+  animation: slideUp 0.22s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Header ───────────────────────────────────────────────── */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 8px 10px 14px;
+  background: #1565c0;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.chat-header-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.bot-icon {
+  font-size: 28px;
+  width: 28px;
+  height: 28px;
+  opacity: 0.92;
+}
+
+.chat-title {
+  display: block;
+  font-weight: 600;
+  font-size: 0.92rem;
+  line-height: 1.2;
+}
+
+.chat-subtitle {
+  display: block;
+  font-size: 0.72rem;
+  opacity: 0.8;
+  margin-top: 1px;
+}
+
+.chat-header-actions {
+  display: flex;
+  align-items: center;
+}
+
+.btn-header {
+  color: rgba(255, 255, 255, 0.85) !important;
+  width: 32px;
+  height: 32px;
+  line-height: 32px;
+
+  mat-icon {
+    font-size: 20px;
+    width: 20px;
+    height: 20px;
+  }
+}
+
+/* ── Cuerpo de mensajes ───────────────────────────────────── */
+.chat-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #f5f7fb;
+  min-height: 0;
+  max-height: 380px;
+
+  &::-webkit-scrollbar {
+    width: 5px;
+  }
+  &::-webkit-scrollbar-thumb {
+    background: #c5cae9;
+    border-radius: 4px;
+  }
+}
+
+.chat-msg {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 100%;
+}
+
+.msg-bot {
+  justify-content: flex-start;
+}
+
+.msg-user {
+  justify-content: flex-end;
+}
+
+.msg-avatar {
+  font-size: 20px;
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+  color: #1565c0;
+  margin-bottom: 2px;
+}
+
+.user-av {
+  color: #546e7a;
+}
+
+.msg-bubble {
+  max-width: 82%;
+  padding: 8px 12px;
+  border-radius: 14px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msg-bot .msg-bubble {
+  background: #ffffff;
+  color: #212121;
+  border-bottom-left-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.msg-user .msg-bubble {
+  background: #1565c0;
+  color: #ffffff;
+  border-bottom-right-radius: 4px;
+}
+
+/* ── Indicador de escritura (3 puntos) ───────────────────── */
+.typing {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 14px;
+
+  span {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #90a4ae;
+    display: inline-block;
+    animation: bounce 1.2s infinite ease-in-out;
+
+    &:nth-child(1) { animation-delay: 0s; }
+    &:nth-child(2) { animation-delay: 0.2s; }
+    &:nth-child(3) { animation-delay: 0.4s; }
+  }
+}
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-6px); }
+}
+
+/* ── Footer / input ───────────────────────────────────────── */
+.chat-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  border-top: 1px solid #e0e0e0;
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.chat-input {
+  flex: 1;
+  border: 1px solid #c5cae9;
+  border-radius: 20px;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  outline: none;
+  transition: border-color 0.2s;
+  background: #f9f9f9;
+  color: #212121;
+
+  &:focus {
+    border-color: #1565c0;
+    background: #fff;
+  }
+
+  &:disabled {
+    opacity: 0.6;
+  }
+}
+
+.btn-send {
+  flex-shrink: 0;
+  width: 36px !important;
+  height: 36px !important;
+
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+  }
+}
+
+/* ── Responsivo para pantallas pequeñas ──────────────────── */
+@media (max-width: 420px) {
+  .chat-panel {
+    width: calc(100vw - 24px);
+    right: 12px;
+    bottom: 80px;
+  }
+
+  .chat-bubble {
+    right: 12px;
+    bottom: 16px;
+  }
+}

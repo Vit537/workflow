@@ -26,6 +26,9 @@ public class Tramite {
   private String nombrePolitica;
   private String iniciadoPor;
 
+  /** Consulta del cliente vinculada a este trámite (opcional) */
+  private String consultaId;
+
   private EstadoTramite estado;
 
   @Builder.Default

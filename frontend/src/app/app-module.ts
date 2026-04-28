@@ -13,9 +13,14 @@ import { MatTooltipModule } from '@angular/material/tooltip';
 import { AppRoutingModule } from './app-routing-module';
 import { App } from './app';
 import { jwtInterceptor } from './shared/interceptors/jwt.interceptor';
+import { FormsModule } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatInputModule } from '@angular/material/input';
+import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { ChatbotComponent } from './shared/chatbot/chatbot.component';
 
 @NgModule({
-  declarations: [App],
+  declarations: [App, ChatbotComponent],
   imports: [
     BrowserModule,
     BrowserAnimationsModule,
@@ -27,6 +32,10 @@ import { jwtInterceptor } from './shared/interceptors/jwt.interceptor';
     MatButtonModule,
     MatChipsModule,
     MatTooltipModule,
+    FormsModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatSnackBarModule,
   ],
   providers: [
     provideBrowserGlobalErrorListeners(),

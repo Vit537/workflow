@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { BehaviorSubject, Observable, catchError, of, switchMap } from 'rxjs';
 import { RespuestaUsuario } from '../../shared/models/user.model';
 import {
   SolicitudCrearUsuario,
@@ -15,9 +16,11 @@ import {
   standalone: false,
 })
 export class GestionUsuariosComponent implements OnInit {
-  listaUsuarios: RespuestaUsuario[] = [];
   columnasMostradas = ['nombre', 'correo', 'rol', 'estado', 'acciones'];
-  cargando = false;
+
+  // BehaviorSubject como trigger de recarga — evita el NG0100
+  private recarga$ = new BehaviorSubject<void>(undefined);
+  usuarios$!: Observable<RespuestaUsuario[]>;
 
   // Panel lateral para crear/editar
   panelAbierto = false;
@@ -31,24 +34,22 @@ export class GestionUsuariosComponent implements OnInit {
     private snackBar: MatSnackBar
   ) {}
 
-
   ngOnInit(): void {
     this.inicializarFormulario();
-    this.cargarUsuarios();
+    this.usuarios$ = this.recarga$.pipe(
+      switchMap(() =>
+        this.servicioUsuario.listarUsuarios().pipe(
+          catchError(() => {
+            this.mostrarNotificacion('Error al cargar los usuarios', 'error');
+            return of([]);
+          })
+        )
+      )
+    );
   }
 
   cargarUsuarios(): void {
-    this.cargando = true;
-    this.servicioUsuario.listarUsuarios().subscribe({
-      next: (usuarios) => {
-        this.listaUsuarios = usuarios;
-        this.cargando = false;
-      },
-      error: () => {
-        this.mostrarNotificacion('Error al cargar los usuarios', 'error');
-        this.cargando = false;
-      },
-    });
+    this.recarga$.next();
   }
 
   abrirCrearUsuario(): void {

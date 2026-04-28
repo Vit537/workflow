@@ -1,0 +1,170 @@
+<div class="detalle-container">
+  <button mat-button (click)="volver()">
+    <mat-icon>arrow_back</mat-icon> Volver
+  </button>
+
+  <div *ngIf="cargando" class="centro">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <div *ngIf="error && !cargando" class="error-msg">{{ error }}</div>
+
+  <ng-container *ngIf="consulta && !cargando">
+    <h2>Consulta de {{ consulta.clienteNombre }}</h2>
+
+    <mat-card class="info-card">
+      <mat-card-content>
+        <div class="campo"><strong>Estado:</strong>
+          <span class="badge" [ngClass]="'badge-' + consulta.estado.toLowerCase()">
+            {{ consulta.estado === 'EN_ATENCION' ? 'En atención' : consulta.estado === 'PENDIENTE' ? 'Pendiente' : 'Completada' }}
+          </span>
+        </div>
+        <div class="campo"><strong>Descripción:</strong> {{ consulta.descripcion }}</div>
+        <div class="campo" *ngIf="consulta.clienteCorreo">
+          <strong>Correo:</strong> {{ consulta.clienteCorreo }}
+        </div>
+        <div class="campo" *ngIf="consulta.clienteTelefono">
+          <strong>Teléfono:</strong> {{ consulta.clienteTelefono }}
+        </div>
+        <div class="campo"><strong>Recibida:</strong> {{ consulta.creadaEn | date:'dd/MM/yyyy HH:mm' }}</div>
+        <div class="campo" *ngIf="consulta.asesorCorreo">
+          <strong>Atendida por:</strong> {{ consulta.asesorCorreo }}
+        </div>
+        <div class="campo" *ngIf="consulta.tramiteId">
+          <strong>Trámite:</strong> {{ consulta.tramiteId }}
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Verificación del cliente -->
+    <mat-card class="accion-card verificacion-card">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon>manage_search</mat-icon> Verificar cliente
+        </mat-card-title>
+        <mat-card-subtitle>Contrasta los datos del solicitante con el histórico</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="verificacion-form">
+          <mat-form-field appearance="outline">
+            <mat-label>Correo a verificar</mat-label>
+            <input matInput [(ngModel)]="correoVerificacion" placeholder="cliente@ejemplo.com">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="campo-completo">
+            <mat-label>Descripción de la solicitud (opcional)</mat-label>
+            <input matInput [(ngModel)]="descripcionVerificacion"
+              placeholder="Para comparar con historial">
+          </mat-form-field>
+          <button mat-stroked-button color="primary" (click)="verificarCliente()"
+            [disabled]="verificando || !correoVerificacion.trim()">
+            <mat-spinner *ngIf="verificando" diameter="18"></mat-spinner>
+            <mat-icon *ngIf="!verificando">search</mat-icon>
+            Verificar
+          </button>
+        </div>
+
+        <!-- Resultado de verificación -->
+        <div *ngIf="resultadoVerificacion" class="verificacion-resultado">
+          <div class="vr-row">
+            <strong>Cliente:</strong> {{ resultadoVerificacion.clienteNombre }}
+            <span *ngIf="resultadoVerificacion.clienteCorreo"> ({{ resultadoVerificacion.clienteCorreo }})</span>
+          </div>
+          <div class="vr-row">
+            <strong>Estado consulta previa:</strong>
+            <mat-chip [color]="resultadoVerificacion.estadoConsulta === 'COMPLETADA' ? 'primary' : 'warn'" highlighted>
+              {{ resultadoVerificacion.estadoConsulta }}
+            </mat-chip>
+          </div>
+          <div class="vr-row coincide"
+            [class.coincide-si]="resultadoVerificacion.descripcionCoincide"
+            [class.coincide-no]="!resultadoVerificacion.descripcionCoincide">
+            <mat-icon>{{ resultadoVerificacion.descripcionCoincide ? 'check_circle' : 'cancel' }}</mat-icon>
+            {{ resultadoVerificacion.descripcionCoincide
+                ? 'La descripción coincide con el historial'
+                : 'La descripción NO coincide con el historial' }}
+          </div>
+          <div class="vr-row" *ngIf="resultadoVerificacion.tramite">
+            <strong>Trámite asociado:</strong> {{ resultadoVerificacion.tramite.estado }}
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Formulario de atención (solo si está pendiente) -->
+    <mat-card class="accion-card" *ngIf="consulta.estado === 'PENDIENTE'">
+      <mat-card-header>
+        <mat-card-title>Atender consulta</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-form-field appearance="outline" class="campo-completo">
+          <mat-label>Mensaje para el cliente *</mat-label>
+          <textarea matInput rows="4" [(ngModel)]="mensajeAsesor"
+                    placeholder="Describe los pasos que el cliente debe seguir..."></textarea>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="campo-completo">
+          <mat-label>Política a iniciar (opcional)</mat-label>
+          <mat-select [(ngModel)]="politicaId" [disabled]="cargandoPoliticas">
+            <mat-option value="">— Sin trámite —</mat-option>
+            <mat-option *ngFor="let p of politicas" [value]="p.id">
+              {{ p.nombre }}
+            </mat-option>
+          </mat-select>
+          <mat-hint>Si se selecciona, se iniciará un trámite automáticamente</mat-hint>
+        </mat-form-field>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-raised-button color="primary"
+                [disabled]="enviando || !mensajeAsesor.trim()"
+                (click)="atender()">
+          <mat-spinner *ngIf="enviando" diameter="18" style="display:inline-block;margin-right:6px"></mat-spinner>
+          <mat-icon *ngIf="!enviando">send</mat-icon> Atender y notificar cliente
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Mensaje asesor si ya fue atendida -->
+    <mat-card class="accion-card" *ngIf="consulta.estado === 'EN_ATENCION'">
+      <mat-card-header>
+        <mat-card-title>En atención</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-form-field appearance="outline" class="campo-completo">
+          <mat-label>Mensaje enviado al cliente</mat-label>
+          <textarea matInput rows="4" [(ngModel)]="mensajeAsesor"></textarea>
+        </mat-form-field>
+      </mat-card-content>
+      <mat-card-actions>
+        <button mat-raised-button color="accent"
+                [disabled]="enviando || !mensajeAsesor.trim()"
+                (click)="atender()">
+          <mat-spinner *ngIf="enviando" diameter="18" style="display:inline-block;margin-right:6px"></mat-spinner>
+          <mat-icon *ngIf="!enviando">edit</mat-icon> Actualizar mensaje
+        </button>
+        <button mat-raised-button color="warn"
+                [disabled]="enviando"
+                (click)="completar()">
+          <mat-spinner *ngIf="enviando" diameter="18" style="display:inline-block;margin-right:6px"></mat-spinner>
+          <mat-icon *ngIf="!enviando">check_circle</mat-icon> Completar consulta
+        </button>
+      </mat-card-actions>
+    </mat-card>
+
+    <!-- Si ya está completada -->
+    <mat-card class="accion-card" *ngIf="consulta.estado === 'COMPLETADA'">
+      <mat-card-content>
+        <p class="completada-msg">
+          <mat-icon>check_circle</mat-icon>
+          Esta consulta está completada.
+        </p>
+        <p *ngIf="consulta.mensajeAsesor">
+          <strong>Mensaje enviado:</strong> {{ consulta.mensajeAsesor }}
+        </p>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Mensajes de éxito/error -->
+    <div *ngIf="exito" class="exito-msg">{{ exito }}</div>
+    <div *ngIf="error" class="error-msg">{{ error }}</div>
+  </ng-container>
+</div>

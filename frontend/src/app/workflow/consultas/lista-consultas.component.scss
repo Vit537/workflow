@@ -1,0 +1,66 @@
+.consultas-container {
+  max-width: 900px;
+  margin: 24px auto;
+  padding: 0 16px;
+}
+
+.header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.filtro-campo {
+  width: 220px;
+  margin-bottom: 16px;
+}
+
+.consulta-card {
+  margin-bottom: 12px;
+  cursor: pointer;
+  transition: box-shadow 0.2s;
+
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 600;
+
+  &.badge-pendiente {
+    background: #fff3e0;
+    color: #e65100;
+  }
+
+  &.badge-atencion {
+    background: #e3f2fd;
+    color: #1565c0;
+  }
+
+  &.badge-completada {
+    background: #e8f5e9;
+    color: #2e7d32;
+  }
+}
+
+.centro {
+  text-align: center;
+  padding: 40px;
+}
+
+.error-msg {
+  color: #c62828;
+  padding: 16px;
+}
+
+.vacio {
+  text-align: center;
+  padding: 32px;
+  color: #757575;
+}

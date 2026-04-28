@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { Graph, InternalEvent, Cell, UndoManager } from '@maxgraph/core';
+import { Graph, InternalEvent, Cell, UndoManager, RubberBandHandler, PanningHandler } from '@maxgraph/core';
 import type { CellStyle } from '@maxgraph/core';
 import { TipoNodo } from '../../shared/models/policy.model';
 import { GrafoEstadoService } from './grafo-estado.service';
@@ -14,6 +14,13 @@ export class GrafoRenderService {
   private onChangeCallback!: () => void;
   private onClickNodoCallback!: (celdaId: string) => void;
   private onSeleccionCambiaCallback!: (haySel: boolean) => void;
+
+  // Interacción del lienzo: zoom, pan, multi-selección
+  private rubberBand!: RubberBandHandler;
+  private containerEl!: HTMLDivElement;
+  private wheelListener!: (e: WheelEvent) => void;
+  private keyDownListener!: (e: KeyboardEvent) => void;
+  private keyUpListener!: (e: KeyboardEvent) => void;
 
   constructor(private estado: GrafoEstadoService) {}
 
@@ -32,6 +39,7 @@ export class GrafoRenderService {
 
   inicializar(container: HTMLDivElement): void {
     InternalEvent.disableContextMenu(container);
+    this.containerEl = container;
 
     const grafo = new Graph(container);
     grafo.setPanning(true);
@@ -40,6 +48,10 @@ export class GrafoRenderService {
     grafo.setEnabled(this.estado.politica?.estado !== 'PUBLICADA');
     grafo.autoExtend = false;
     grafo.extendParentsOnMove = false;
+    // Prevents swimlanes from auto-expanding when a child node is added or moved outside their bounds
+    (grafo as any).extendParents = false;
+    // Disable Ctrl+drag clone: prevents ghost copies when user ctrl+clicks and drags
+    (grafo as any).cloneEnabled = false;
 
     const edgeStyle = grafo.getStylesheet().getDefaultEdgeStyle();
     edgeStyle.edgeStyle = 'orthogonalEdgeStyle';
@@ -89,9 +101,56 @@ export class GrafoRenderService {
     }
 
     this.estado.diagramaCargado = true;
+
+    // ── Multi-selección por rubber-band (arrastrar en vacío) ──────────────
+    this.rubberBand = new RubberBandHandler(grafo);
+
+    // ── Zoom con rueda del ratón ──────────────────────────────────────────
+    this.wheelListener = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.deltaY < 0) {
+        grafo.zoomIn();
+      } else {
+        grafo.zoomOut();
+      }
+    };
+    container.addEventListener('wheel', this.wheelListener, { passive: false });
+
+    // ── Pan con Espacio + arrastrar (modo "mano") ─────────────────────────
+    // Al mantener Espacio se activa el modo pan: cursor grab, arrastre mueve el lienzo.
+    // Al soltar, vuelve al modo selección con rubber-band habilitado.
+    this.keyDownListener = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const enInput = e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+        if (!enInput) {
+          e.preventDefault();
+          const ph = grafo.getPlugin<PanningHandler>(PanningHandler.pluginId);
+          if (ph) ph.useLeftButtonForPanning = true;
+          if (this.rubberBand) this.rubberBand.setEnabled(false);
+          container.style.cursor = 'grab';
+        }
+      }
+    };
+
+    this.keyUpListener = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        const ph = grafo.getPlugin<PanningHandler>(PanningHandler.pluginId);
+        if (ph) ph.useLeftButtonForPanning = false;
+        if (this.rubberBand) this.rubberBand.setEnabled(true);
+        container.style.cursor = 'default';
+      }
+    };
+
+    document.addEventListener('keydown', this.keyDownListener);
+    document.addEventListener('keyup', this.keyUpListener);
   }
 
   destruir(): void {
+    if (this.containerEl && this.wheelListener) {
+      this.containerEl.removeEventListener('wheel', this.wheelListener);
+    }
+    if (this.keyDownListener) document.removeEventListener('keydown', this.keyDownListener);
+    if (this.keyUpListener) document.removeEventListener('keyup', this.keyUpListener);
     if (this.estado.grafo) {
       this.estado.grafo.destroy();
     }

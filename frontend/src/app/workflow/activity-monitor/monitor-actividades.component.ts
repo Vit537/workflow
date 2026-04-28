@@ -1,8 +1,9 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, NgZone, OnInit, OnDestroy } from '@angular/core';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { TramiteService, RespuestaTramite } from '../../shared/services/tramite.service';
+import { BehaviorSubject, Observable, Subscription, catchError, of, switchMap } from 'rxjs';
+import { TramiteService, RespuestaTramite, EstadoPaso } from '../../shared/services/tramite.service';
 import { WebsocketService } from '../../shared/services/websocket.service';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 @Component({
   selector: 'app-monitor-actividades',
@@ -11,31 +12,35 @@ import { WebsocketService } from '../../shared/services/websocket.service';
   standalone: false,
 })
 export class MonitorActividadesComponent implements OnInit, OnDestroy {
-  tramites: RespuestaTramite[] = [];
-  cargando = true;
+  private recarga$ = new BehaviorSubject<void>(undefined);
+  tramites$!: Observable<RespuestaTramite[]>;
   private suscripcion?: Subscription;
+
+  /** Mapa tramiteId+nodoId → true mientras hay una petición en curso */
+  cambiando: Record<string, boolean> = {};
 
   constructor(
     private tramiteService: TramiteService,
     private wsService: WebsocketService,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone
   ) {}
 
   ngOnInit(): void {
-    this.cargarActividades();
-    this.wsService.conectar();
+    this.tramites$ = this.recarga$.pipe(
+      switchMap(() =>
+        this.tramiteService.misActividades().pipe(
+          catchError(() => of([]))
+        )
+      )
+    );
 
-    // CU-12: escuchar nuevas actividades en tiempo real
+    this.wsService.conectar();
     this.suscripcion = this.wsService
       .suscribir<RespuestaTramite>('/topic/actividades')
-      .subscribe((tramite) => {
-        const indice = this.tramites.findIndex(t => t.id === tramite.id);
-        if (indice >= 0) {
-          this.tramites[indice] = tramite;
-        } else {
-          this.tramites = [tramite, ...this.tramites];
-        }
-      });
+      .subscribe(() => this.recarga$.next());
   }
 
   ngOnDestroy(): void {
@@ -43,14 +48,34 @@ export class MonitorActividadesComponent implements OnInit, OnDestroy {
     this.wsService.desconectar();
   }
 
-  cargarActividades(): void {
-    this.cargando = true;
-    this.tramiteService.misActividades().subscribe({
-      next: (lista) => {
-        this.tramites = lista;
-        this.cargando = false;
+  cambiarEstado(
+    tramiteId: string,
+    nodoId: string,
+    estado: 'PENDIENTE' | 'EN_PROGRESO' | 'BLOQUEADO'
+  ): void {
+    const key = tramiteId + nodoId;
+    this.cambiando[key] = true;
+    this.tramiteService.cambiarEstadoPaso(tramiteId, nodoId, estado).subscribe({
+      next: () => {
+        // setTimeout defers mutations to the next macrotask so Angular's
+        // dev-mode double-check does not see a mid-cycle value change (NG0100)
+        setTimeout(() => {
+          this.cambiando[key] = false;
+          this.recarga$.next();
+          const etiquetas: Record<string, string> = {
+            PENDIENTE: 'Pendiente',
+            EN_PROGRESO: 'En progreso',
+            BLOQUEADO: 'Bloqueado',
+          };
+          this.snackBar.open(`Paso marcado como ${etiquetas[estado]}`, 'OK', { duration: 2500 });
+        });
       },
-      error: () => { this.cargando = false; },
+      error: (err) => {
+        setTimeout(() => {
+          this.cambiando[key] = false;
+          this.snackBar.open(err?.error?.mensaje ?? 'Error al cambiar estado', 'Cerrar', { duration: 3000 });
+        });
+      },
     });
   }
 
@@ -74,7 +99,10 @@ export class MonitorActividadesComponent implements OnInit, OnDestroy {
     return mapa[estado] ?? 'help_outline';
   }
 
-  abrirActividad(tramiteId: string, nodoId: string): void {
-    this.router.navigate(['/workflow/tramites', tramiteId, 'pasos', nodoId]);
+  abrirActividad(tramiteId: string, nodoId: string, tramite?: RespuestaTramite): void {
+    this.router.navigate(
+      ['/workflow/tramites', tramiteId, 'pasos', nodoId],
+      { state: { tramite } }
+    );
   }
 }

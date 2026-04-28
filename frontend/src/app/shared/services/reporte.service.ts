@@ -1,0 +1,35 @@
+import { Injectable } from '@angular/core';
+import { HttpClient } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface ResultadoReporte {
+  titulo: string;
+  descripcion: string;
+  columnas: string[];
+  filas: Record<string, any>[];
+  promptTranscrito?: string | null;
+  total: number;
+}
+
+@Injectable({ providedIn: 'root' })
+export class ReporteService {
+  private readonly urlApi = 'http://localhost:8080/api/reportes';
+
+  constructor(private http: HttpClient) {}
+
+  generarDesdeTexto(prompt: string): Observable<ResultadoReporte> {
+    return this.http.post<ResultadoReporte>(`${this.urlApi}/generar`, { prompt });
+  }
+
+  generarDesdeAudio(audioBlob: Blob, filename: string): Observable<ResultadoReporte> {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, filename);
+    return this.http.post<ResultadoReporte>(`${this.urlApi}/generar-audio`, formData);
+  }
+
+  exportarExcel(reporte: ResultadoReporte): Observable<Blob> {
+    return this.http.post(`${this.urlApi}/exportar/excel`, reporte, {
+      responseType: 'blob',
+    });
+  }
+}

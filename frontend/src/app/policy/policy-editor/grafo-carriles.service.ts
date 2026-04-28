@@ -31,8 +31,11 @@ export class GrafoCarrilesService {
 
     const nodoId = e.generarId();
     const { ancho, alto } = this.render.dimensionesParaTipo(tipo);
-    const posX = 50 + Math.random() * 200;
-    const posY = 50 + Math.random() * 80;
+    // Clamp position so the node stays fully inside the swimlane
+    const swW = celdaCarril.geometry?.width  ?? 200;
+    const swH = celdaCarril.geometry?.height ?? 600;
+    const posX = Math.max(10, Math.min(10 + Math.random() * 100, swW - ancho - 10));
+    const posY = Math.max(e.SWIMLANE_HEADER + 10, Math.min(e.SWIMLANE_HEADER + 10 + Math.random() * 80, swH - alto - 10));
 
     e.grafo.batchUpdate(() => {
       const vertex = e.grafo.insertVertex(

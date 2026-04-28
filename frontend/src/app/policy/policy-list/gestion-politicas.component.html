@@ -5,6 +5,9 @@
       <h1>Políticas de Negocio</h1>
       <p>Gestiona y diseña los flujos de procesos de tu organización</p>
     </div>
+    <button mat-icon-button matTooltip="Recargar" (click)="cargar()" style="margin-right:8px">
+      <mat-icon>refresh</mat-icon>
+    </button>
     <button mat-raised-button color="primary" (click)="abrirPanel()">
       <mat-icon>add</mat-icon> Nueva Política
     </button>
@@ -13,70 +16,68 @@
   <!-- Tabla -->
   <mat-card>
     <mat-card-content>
-      <div *ngIf="cargando" class="cargando">
-        <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-      </div>
+      <ng-container *ngIf="politicas$ | async as politicas; else cargandoTpl">
 
-      <div *ngIf="errorCarga && !cargando" class="estado-error">
-        <mat-icon color="warn">cloud_off</mat-icon>
-        <p>No se pudo conectar con el servidor.</p>
-        <button mat-stroked-button color="primary" (click)="cargarPoliticas()">
-          <mat-icon>refresh</mat-icon> Reintentar
-        </button>
-      </div>
+        <div *ngIf="politicas.length === 0" class="vacio">
+          <mat-icon class="icono-vacio">description</mat-icon>
+          <p>No hay políticas creadas. ¡Crea la primera!</p>
+        </div>
 
-      <div *ngIf="!cargando && !errorCarga && politicas.length === 0" class="vacio">
-        <mat-icon class="icono-vacio">description</mat-icon>
-        <p>No hay políticas creadas. ¡Crea la primera!</p>
-      </div>
+        <mat-table [dataSource]="politicas" *ngIf="politicas.length > 0">
+          <ng-container matColumnDef="nombre">
+            <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
+            <mat-cell *matCellDef="let p">
+              <strong>{{ p.nombre }}</strong>
+              <small *ngIf="p.descripcion">{{ p.descripcion }}</small>
+            </mat-cell>
+          </ng-container>
 
-      <mat-table [dataSource]="politicas" *ngIf="!cargando && !errorCarga && politicas.length > 0">
-        <ng-container matColumnDef="nombre">
-          <mat-header-cell *matHeaderCellDef>Nombre</mat-header-cell>
-          <mat-cell *matCellDef="let p">
-            <strong>{{ p.nombre }}</strong>
-            <small *ngIf="p.descripcion">{{ p.descripcion }}</small>
-          </mat-cell>
-        </ng-container>
+          <ng-container matColumnDef="estado">
+            <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
+            <mat-cell *matCellDef="let p">
+              <mat-chip [color]="colorEstado(p.estado)" highlighted>
+                {{ etiquetaEstado(p.estado) }}
+              </mat-chip>
+            </mat-cell>
+          </ng-container>
 
-        <ng-container matColumnDef="estado">
-          <mat-header-cell *matHeaderCellDef>Estado</mat-header-cell>
-          <mat-cell *matCellDef="let p">
-            <mat-chip [color]="colorEstado(p.estado)" highlighted>
-              {{ etiquetaEstado(p.estado) }}
-            </mat-chip>
-          </mat-cell>
-        </ng-container>
+          <ng-container matColumnDef="creadoPor">
+            <mat-header-cell *matHeaderCellDef>Creado por</mat-header-cell>
+            <mat-cell *matCellDef="let p">{{ p.creadoPor }}</mat-cell>
+          </ng-container>
 
-        <ng-container matColumnDef="creadoPor">
-          <mat-header-cell *matHeaderCellDef>Creado por</mat-header-cell>
-          <mat-cell *matCellDef="let p">{{ p.creadoPor }}</mat-cell>
-        </ng-container>
+          <ng-container matColumnDef="creadoEn">
+            <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
+            <mat-cell *matCellDef="let p">{{ p.creadoEn | date:'dd/MM/yyyy' }}</mat-cell>
+          </ng-container>
 
-        <ng-container matColumnDef="creadoEn">
-          <mat-header-cell *matHeaderCellDef>Fecha</mat-header-cell>
-          <mat-cell *matCellDef="let p">{{ p.creadoEn | date:'dd/MM/yyyy' }}</mat-cell>
-        </ng-container>
+          <ng-container matColumnDef="acciones">
+            <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
+            <mat-cell *matCellDef="let p">
+              <button mat-icon-button color="primary"
+                [matTooltip]="p.estado === 'PUBLICADA' ? 'Ver diagrama' : 'Editar diagrama'"
+                (click)="abrirEditor(p.id)">
+                <mat-icon>{{ p.estado === 'PUBLICADA' ? 'visibility' : 'edit' }}</mat-icon>
+              </button>
+              <button mat-icon-button color="warn" matTooltip="Eliminar"
+                (click)="eliminarPolitica(p.id)"
+                [disabled]="p.estado === 'PUBLICADA'">
+                <mat-icon>delete</mat-icon>
+              </button>
+            </mat-cell>
+          </ng-container>
 
-        <ng-container matColumnDef="acciones">
-          <mat-header-cell *matHeaderCellDef>Acciones</mat-header-cell>
-          <mat-cell *matCellDef="let p">
-            <button mat-icon-button color="primary"
-              [matTooltip]="p.estado === 'PUBLICADA' ? 'Ver diagrama' : 'Editar diagrama'"
-              (click)="abrirEditor(p.id)">
-              <mat-icon>{{ p.estado === 'PUBLICADA' ? 'visibility' : 'edit' }}</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" matTooltip="Eliminar"
-              (click)="eliminarPolitica(p.id)"
-              [disabled]="p.estado === 'PUBLICADA'">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </mat-cell>
-        </ng-container>
+          <mat-header-row *matHeaderRowDef="columnas"></mat-header-row>
+          <mat-row *matRowDef="let row; columns: columnas;"></mat-row>
+        </mat-table>
 
-        <mat-header-row *matHeaderRowDef="columnas"></mat-header-row>
-        <mat-row *matRowDef="let row; columns: columnas;"></mat-row>
-      </mat-table>
+      </ng-container>
+
+      <ng-template #cargandoTpl>
+        <div class="cargando">
+          <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+        </div>
+      </ng-template>
     </mat-card-content>
   </mat-card>
 </div>

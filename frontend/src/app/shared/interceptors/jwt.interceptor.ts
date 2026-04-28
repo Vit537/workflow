@@ -9,6 +9,11 @@ export const jwtInterceptor: HttpInterceptorFn = (
 ) => {
   const authService = inject(AuthService);
 
+  // No interceptar llamadas externas (ej. Groq API)
+  if (req.url.startsWith('https://api.groq.com')) {
+    return next(req);
+  }
+
   // Solo agregar el token si existe Y no está expirado
   if (authService.estaAutenticado()) {
     const token = authService.obtenerToken()!;

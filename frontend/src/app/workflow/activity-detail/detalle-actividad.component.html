@@ -101,6 +101,53 @@
     </mat-card-content>
   </mat-card>
 
+  <!-- Datos enviados por el cliente -->
+  <mat-card class="seccion-card" *ngIf="datosCliente.length > 0">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon color="primary">upload_file</mat-icon> Datos enviados por el cliente
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="datos-cliente-lista">
+        <div *ngFor="let entrada of datosCliente" class="dato-cliente-item">
+          <span class="dato-campo">{{ entrada.campo }}</span>
+          <ng-container *ngIf="esArchivo(entrada.valor); else valorTexto">
+            <a [href]="urlDescarga(entrada.valor)" target="_blank" rel="noopener"
+              class="link-descarga" mat-stroked-button color="primary">
+              <mat-icon>download</mat-icon>
+              {{ nombreArchivo(entrada.valor) }}
+            </a>
+          </ng-container>
+          <ng-template #valorTexto>
+            <span class="dato-valor">{{ entrada.valor }}</span>
+          </ng-template>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Cambiar estado del paso -->
+  <mat-card class="seccion-card" *ngIf="paso.estado !== 'COMPLETADO'">
+    <mat-card-header>
+      <mat-card-title>
+        <mat-icon>tune</mat-icon> Gestionar estado del paso
+      </mat-card-title>
+    </mat-card-header>
+    <mat-card-content>
+      <div class="estado-botones">
+        <button mat-stroked-button *ngFor="let e of estadosPaso"
+          [color]="e.color"
+          [disabled]="cambiandoEstado || paso.estado === e.valor"
+          (click)="cambiarEstado(e.valor)">
+          <mat-icon>{{ e.icono }}</mat-icon>
+          {{ e.etiqueta }}
+        </button>
+        <mat-spinner *ngIf="cambiandoEstado" diameter="20"></mat-spinner>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
   <!-- Acción -->
   <div class="acciones-footer" *ngIf="paso.estado !== 'COMPLETADO'">
     <button mat-raised-button color="primary" (click)="completarActividad()"

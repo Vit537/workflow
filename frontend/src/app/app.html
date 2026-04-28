@@ -19,6 +19,18 @@
       *ngIf="usuario.rol === 'ADMIN'">
       <mat-icon>people</mat-icon> Usuarios
     </a>
+    <a mat-button routerLink="/workflow/kpis" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ADMIN'">
+      <mat-icon>bar_chart</mat-icon> KPIs
+    </a>
+    <a mat-button routerLink="/workflow/reportes" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ADMIN'">
+      <mat-icon>assessment</mat-icon> Reportes
+    </a>
+    <a mat-button routerLink="/workflow/consultas" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ADMIN' || usuario.rol === 'ASESOR'">
+      <mat-icon>support_agent</mat-icon> Consultas
+    </a>
   </nav>
 
   <span class="navbar-spacer"></span>
@@ -37,3 +49,6 @@
 <div [class.with-navbar]="mostrarNavbar">
   <router-outlet></router-outlet>
 </div>
+
+<!-- Chatbot flotante: visible solo para ADMIN y ASESOR -->
+<app-chatbot></app-chatbot>

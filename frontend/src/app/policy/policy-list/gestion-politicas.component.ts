@@ -1,7 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, HostListener, OnDestroy, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatSnackBar } from '@angular/material/snack-bar';
+import { BehaviorSubject, Observable, Subscription, catchError, of, switchMap, timer } from 'rxjs';
 import { PoliticaResumen } from '../../shared/models/policy.model';
 import {
   PoliticaService,
@@ -14,12 +15,13 @@ import {
   styleUrls: ['./gestion-politicas.component.scss'],
   standalone: false,
 })
-export class GestionPoliticasComponent implements OnInit {
-  politicas: PoliticaResumen[] = [];
-  cargando = false;
-  errorCarga = false;
+export class GestionPoliticasComponent implements OnInit, OnDestroy {
+  private recarga$ = new BehaviorSubject<void>(undefined);
+  politicas$!: Observable<PoliticaResumen[]>;
   panelAbierto = false;
   guardando = false;
+  private readonly intervaloRefrescoMs = 15000;
+  private refrescoAutomaticoSub?: Subscription;
 
   formularioCrear!: FormGroup;
   columnas = ['nombre', 'estado', 'creadoPor', 'creadoEn', 'acciones'];
@@ -36,22 +38,38 @@ export class GestionPoliticasComponent implements OnInit {
       nombre: ['', [Validators.required, Validators.minLength(3)]],
       descripcion: [''],
     });
-    this.cargarPoliticas();
+
+    this.politicas$ = this.recarga$.pipe(
+      switchMap(() =>
+        this.politicaService.listarPoliticas().pipe(
+          catchError((err) => {
+            const detalle = err?.status ? ` (HTTP ${err.status})` : '';
+            this.mostrarMensaje(`No se pudo conectar con el servidor${detalle}. Verifica backend y token.`);
+            return of(this.politicaService.obtenerPoliticasCache());
+          })
+        )
+      )
+    );
+
+    this.iniciarRefrescoAutomatico();
   }
 
-  cargarPoliticas(): void {
-    this.cargando = true;
-    this.errorCarga = false;
-    this.politicaService.listarPoliticas().subscribe({
-      next: (lista) => {
-        this.politicas = lista;
-        this.cargando = false;
-      },
-      error: () => {
-        this.cargando = false;
-        this.errorCarga = true;
-        this.mostrarMensaje('No se pudo conectar con el servidor. Verifica que el backend esté corriendo.');
-      },
+  ngOnDestroy(): void {
+    this.refrescoAutomaticoSub?.unsubscribe();
+  }
+
+  @HostListener('window:focus')
+  alRecuperarFoco(): void {
+    this.recarga$.next();
+  }
+
+  cargar(): void {
+    this.recarga$.next();
+  }
+
+  private iniciarRefrescoAutomatico(): void {
+    this.refrescoAutomaticoSub = timer(this.intervaloRefrescoMs, this.intervaloRefrescoMs).subscribe(() => {
+      this.recarga$.next();
     });
   }
 
@@ -92,7 +110,7 @@ export class GestionPoliticasComponent implements OnInit {
     if (!confirm('¿Seguro que desea eliminar esta política?')) return;
     this.politicaService.eliminarPolitica(id).subscribe({
       next: () => {
-        this.politicas = this.politicas.filter((p: PoliticaResumen) => p.id !== id);
+        this.recarga$.next();
         this.mostrarMensaje('Política eliminada');
       },
       error: (err) => {

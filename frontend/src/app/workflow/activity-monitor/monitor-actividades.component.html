@@ -2,51 +2,99 @@
 
   <div class="monitor-header">
     <div>
-      <h1>Mi Monitor de Actividades</h1>
-      <p>Actividades asignadas a tu departamento — se actualiza en tiempo real</p>
+      <h1>Monitor de Trámites</h1>
+      <p>Trámites asignados a ti — se actualiza en tiempo real</p>
     </div>
     <span class="badge-ws">
       <mat-icon class="ws-icon">wifi</mat-icon> En vivo
     </span>
   </div>
 
-  <div *ngIf="cargando" class="cargando">
-    <mat-progress-bar mode="indeterminate"></mat-progress-bar>
-  </div>
+  <ng-container *ngIf="tramites$ | async as tramites; else cargandoTpl">
 
-  <div *ngIf="!cargando && tramites.length === 0" class="vacio">
+  <div *ngIf="tramites.length === 0" class="vacio">
     <mat-icon>inbox</mat-icon>
-    <p>No tienes actividades asignadas por el momento.</p>
+    <p>No tienes trámites activos por el momento.</p>
   </div>
 
-  <div class="tramites-grid" *ngIf="!cargando && tramites.length > 0">
+  <div class="tramites-grid" *ngIf="tramites.length > 0">
     <mat-card class="tramite-card" *ngFor="let t of tramites">
       <mat-card-header>
         <mat-card-title>{{ t.nombrePolitica }}</mat-card-title>
         <mat-card-subtitle>Iniciado: {{ t.iniciadoEn | date:'dd/MM/yyyy HH:mm' }}</mat-card-subtitle>
       </mat-card-header>
 
+      <!-- Datos del cliente (si vino de una consulta) -->
       <mat-card-content>
+        <div class="cliente-info" *ngIf="t.clienteNombre">
+          <mat-icon class="cliente-icono">person</mat-icon>
+          <div>
+            <span class="cliente-nombre">{{ t.clienteNombre }}</span>
+            <span class="cliente-correo" *ngIf="t.clienteCorreo">{{ t.clienteCorreo }}</span>
+          </div>
+        </div>
+        <div class="descripcion-consulta" *ngIf="t.descripcionConsulta">
+          <mat-icon>chat_bubble_outline</mat-icon>
+          <span>{{ t.descripcionConsulta }}</span>
+        </div>
+
         <div class="pasos-lista">
           <div class="paso-item" *ngFor="let paso of t.pasos"
             [class.paso-activo]="paso.estado === 'EN_PROGRESO'"
-            [class.paso-clickable]="paso.estado === 'EN_PROGRESO'"
-            (click)="paso.estado === 'EN_PROGRESO' && abrirActividad(t.id, paso.nodoId)">
+            [class.paso-bloqueado]="paso.estado === 'BLOQUEADO'">
+
             <mat-icon [color]="colorEstadoPaso(paso.estado)" class="paso-icono">
               {{ icono(paso.estado) }}
             </mat-icon>
-            <div class="paso-info">
+
+            <div class="paso-info" (click)="paso.estado === 'EN_PROGRESO' && abrirActividad(t.id, paso.nodoId, t)"
+              [class.paso-clickable]="paso.estado === 'EN_PROGRESO'">
               <span class="paso-nombre">{{ paso.etiquetaNodo }}</span>
               <span class="paso-carril">{{ paso.carrilNombre }}</span>
             </div>
+
             <mat-chip [color]="colorEstadoPaso(paso.estado)" highlighted class="chip-estado">
               {{ paso.estado }}
             </mat-chip>
-            <mat-icon *ngIf="paso.estado === 'EN_PROGRESO'" class="icono-ir">arrow_forward</mat-icon>
+
+            <!-- Cambiar estado (solo pasos no completados) -->
+            <button mat-icon-button [matMenuTriggerFor]="menuEstado"
+              *ngIf="paso.estado !== 'COMPLETADO'"
+              matTooltip="Cambiar estado"
+              [disabled]="cambiando[t.id + paso.nodoId]">
+              <mat-icon>more_vert</mat-icon>
+            </button>
+            <mat-menu #menuEstado="matMenu">
+              <button mat-menu-item (click)="cambiarEstado(t.id, paso.nodoId, 'EN_PROGRESO')"
+                *ngIf="paso.estado !== 'EN_PROGRESO'">
+                <mat-icon color="accent">hourglass_bottom</mat-icon> Marcar En progreso
+              </button>
+              <button mat-menu-item (click)="cambiarEstado(t.id, paso.nodoId, 'BLOQUEADO')"
+                *ngIf="paso.estado !== 'BLOQUEADO'">
+                <mat-icon color="warn">block</mat-icon> Bloquear paso
+              </button>
+              <button mat-menu-item (click)="cambiarEstado(t.id, paso.nodoId, 'PENDIENTE')"
+                *ngIf="paso.estado !== 'PENDIENTE'">
+                <mat-icon>schedule</mat-icon> Mover a Pendiente
+              </button>
+              <mat-divider></mat-divider>
+              <button mat-menu-item (click)="abrirActividad(t.id, paso.nodoId, t)">
+                <mat-icon>open_in_new</mat-icon> Ver detalle y completar
+              </button>
+            </mat-menu>
+
           </div>
         </div>
       </mat-card-content>
     </mat-card>
   </div>
+
+  </ng-container>
+
+  <ng-template #cargandoTpl>
+    <div class="cargando">
+      <mat-progress-bar mode="indeterminate"></mat-progress-bar>
+    </div>
+  </ng-template>
 
 </div>

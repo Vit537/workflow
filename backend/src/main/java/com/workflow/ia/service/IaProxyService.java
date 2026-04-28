@@ -43,4 +43,22 @@ public class IaProxyService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "El microservicio IA no está disponible");
         }
     }
+
+    public Map<?, ?> chatMensaje(Map<?, ?> body) {
+        String url = iaServiceUrl + "/api/ia/chat";
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        HttpEntity<Map<?, ?>> request = new HttpEntity<>(body, headers);
+
+        try {
+            ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+            return response.getBody();
+        } catch (HttpClientErrorException e) {
+            log.error("Error del microservicio IA (chat) [{}]: {}", e.getStatusCode(), e.getResponseBodyAsString());
+            throw new ResponseStatusException(e.getStatusCode(), "Error en el microservicio IA: " + e.getResponseBodyAsString());
+        } catch (ResourceAccessException e) {
+            log.error("Microservicio IA no disponible: {}", e.getMessage());
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "El microservicio IA no está disponible");
+        }
+    }
 }
