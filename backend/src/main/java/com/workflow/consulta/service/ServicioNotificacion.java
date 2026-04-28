@@ -37,16 +37,20 @@ public class ServicioNotificacion {
     }
 
     // sendAsync() usa el pool interno del SDK — no bloquea el hilo HTTP en absoluto
-    var futuro = FirebaseMessaging.getInstance().sendAsync(builder.build());
-    ApiFutures.addCallback(futuro, new com.google.api.core.ApiFutureCallback<>() {
-      @Override
-      public void onSuccess(String messageId) {
-        log.info("Notificación FCM enviada. MessageId: {}", messageId);
-      }
-      @Override
-      public void onFailure(Throwable t) {
-        log.error("Error al enviar notificación FCM: {}", t.getMessage());
-      }
-    }, Runnable::run);
+    try {
+      var futuro = FirebaseMessaging.getInstance().sendAsync(builder.build());
+      ApiFutures.addCallback(futuro, new com.google.api.core.ApiFutureCallback<>() {
+        @Override
+        public void onSuccess(String messageId) {
+          log.info("Notificación FCM enviada. MessageId: {}", messageId);
+        }
+        @Override
+        public void onFailure(Throwable t) {
+          log.error("Error al enviar notificación FCM: {}", t.getMessage());
+        }
+      }, Runnable::run);
+    } catch (Exception e) {
+      log.warn("Firebase no está disponible, notificación push omitida: {}", e.getMessage());
+    }
   }
 }
