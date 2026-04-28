@@ -59,7 +59,7 @@ jobs:
             --cpu 1 \
             --min-instances 0 \
             --max-instances 3 \
-            --startup-cpu-boost \
+            --cpu-boost \
             --set-env-vars "GROQ_API_KEY_POLICY=${{ secrets.GROQ_API_KEY_POLICY }},GROQ_API_KEY_CHAT=${{ secrets.GROQ_API_KEY_CHAT }},GROQ_MODEL=llama-3.1-8b-instant,ALLOWED_ORIGINS=${{ secrets.FRONTEND_URL }}" \
             --project ${{ env.PROJECT_ID }}
 
@@ -115,7 +115,7 @@ jobs:
             --cpu 1 \
             --min-instances 0 \
             --max-instances 3 \
-            --startup-cpu-boost \
+            --cpu-boost \
             --set-env-vars "MONGO_URI=${{ secrets.MONGO_URI }},JWT_SECRET=${{ secrets.JWT_SECRET }},CORS_ORIGINS=${{ secrets.FRONTEND_URL }},IA_SERVICE_URL=${{ needs.deploy-ai-service.outputs.ai_url }}" \
             --project ${{ env.PROJECT_ID }}
 
