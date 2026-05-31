@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { TipoNodo, TipoCampo } from '../models/policy.model';
+import { environment } from '../../../../environments/environment';
 
 export interface CampoIA {
   nombre: string;
@@ -64,7 +65,7 @@ export interface RespuestaIA {
 
 @Injectable({ providedIn: 'root' })
 export class IaService {
-  private readonly urlApi = 'http://localhost:8080/api/ia';
+  private readonly urlApi = `${environment.apiUrl}/api/ia`;
 
   constructor(private http: HttpClient) {}
 

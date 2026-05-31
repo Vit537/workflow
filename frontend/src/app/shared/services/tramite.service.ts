@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../../../environments/environment';
 
 export type EstadoTramite = 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
 export type EstadoPaso = 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADO' | 'BLOQUEADO';
@@ -34,7 +35,7 @@ export interface RespuestaTramite {
 
 @Injectable({ providedIn: 'root' })
 export class TramiteService {
-  private readonly urlApi = 'http://localhost:8080/api/tramites';
+  private readonly urlApi = `${environment.apiUrl}/api/tramites`;
 
   constructor(private http: HttpClient) {}
 

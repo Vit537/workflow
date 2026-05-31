@@ -14,7 +14,8 @@ export interface RespuestaVerificacion {
   tramite?: { estado: string; [key: string]: unknown };
 }
 
-const API = 'http://localhost:8080/api/consultas';
+import { environment } from '../../../../environments/environment';
+const API = `${environment.apiUrl}/api/consultas`;
 
 @Injectable({ providedIn: 'root' })
 export class ConsultaService {

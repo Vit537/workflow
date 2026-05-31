@@ -3,7 +3,7 @@ name: Deploy Backend & AI Service
 on:
   push:
     branches:
-      - ultimos-cambios
+      - main
     paths:
       - 'backend/**'
       - 'ai-service/**'
@@ -11,88 +11,61 @@ on:
   workflow_dispatch:
 
 env:
-  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
-  REGION: us-central1
-  REGISTRY: us-central1-docker.pkg.dev
-  REPO: workflow-repo
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
 
 jobs:
   deploy-ai-service:
     name: Build & Deploy AI Service
     runs-on: ubuntu-latest
 
-    outputs:
-      ai_url: ${{ steps.ai-url.outputs.url }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          ref: ultimos-cambios
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Authenticate with GCP
-        uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
-
-      - name: Build AI service image
-        working-directory: ai-service
+      - name: Build and push AI service image
         run: |
-          docker build -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/ai-service:${{ github.sha }} .
+          docker build -t $ECR_REGISTRY/workflow/ai-service:${{ github.sha }} ./ai-service
+          docker tag $ECR_REGISTRY/workflow/ai-service:${{ github.sha }} $ECR_REGISTRY/workflow/ai-service:latest
+          docker push $ECR_REGISTRY/workflow/ai-service:${{ github.sha }}
+          docker push $ECR_REGISTRY/workflow/ai-service:latest
 
-      - name: Push AI service image
+      - name: Deploy AI service to ECS
         run: |
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/ai-service:${{ github.sha }}
-
-      - name: Deploy AI service to Cloud Run
-        run: |
-          gcloud run deploy ai-service \
-            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/ai-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --port 8080 \
-            --memory 512Mi \
-            --cpu 1 \
-            --min-instances 0 \
-            --max-instances 3 \
-            --cpu-boost \
-            --set-env-vars "GROQ_API_KEY_POLICY=${{ secrets.GROQ_API_KEY_POLICY }},GROQ_API_KEY_CHAT=${{ secrets.GROQ_API_KEY_CHAT }},GROQ_MODEL=llama-3.1-8b-instant,ALLOWED_ORIGINS=${{ secrets.FRONTEND_URL }}" \
-            --project ${{ env.PROJECT_ID }}
-
-      - name: Get AI service URL
-        id: ai-url
-        run: |
-          URL=$(gcloud run services describe ai-service \
-            --region ${{ env.REGION }} \
-            --project ${{ env.PROJECT_ID }} \
-            --format "value(status.url)")
-          echo "url=$URL" >> $GITHUB_OUTPUT
+          aws ecs update-service \
+            --cluster workflow-cluster \
+            --service workflow-ai-service-svc \
+            --force-new-deployment \
+            --region $AWS_REGION
 
   deploy-backend:
     name: Build & Deploy Backend
     runs-on: ubuntu-latest
     needs: deploy-ai-service
 
-    outputs:
-      backend_url: ${{ steps.backend-url.outputs.url }}
-
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          ref: ultimos-cambios
 
-      - name: Authenticate with GCP
-        uses: google-github-actions/auth@v2
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
         with:
-          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
 
-      - name: Configure Docker for Artifact Registry
-        run: gcloud auth configure-docker ${{ env.REGISTRY }} --quiet
+      - name: Login to Amazon ECR
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Write Firebase credentials
         env:
@@ -100,42 +73,23 @@ jobs:
         run: |
           printf '%s' "$FIREBASE_JSON" > backend/src/main/resources/firebase-adminsdk.json
 
-      - name: Build backend image
-        working-directory: backend
+      - name: Build and push backend image
         run: |
-          docker build -t ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/spring-service:${{ github.sha }} .
+          docker build -t $ECR_REGISTRY/workflow/backend:${{ github.sha }} ./backend
+          docker tag $ECR_REGISTRY/workflow/backend:${{ github.sha }} $ECR_REGISTRY/workflow/backend:latest
+          docker push $ECR_REGISTRY/workflow/backend:${{ github.sha }}
+          docker push $ECR_REGISTRY/workflow/backend:latest
 
-      - name: Push backend image
+      - name: Deploy backend to ECS
         run: |
-          docker push ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/spring-service:${{ github.sha }}
-
-      - name: Deploy backend to Cloud Run
-        run: |
-          gcloud run deploy spring-service \
-            --image ${{ env.REGISTRY }}/${{ env.PROJECT_ID }}/${{ env.REPO }}/spring-service:${{ github.sha }} \
-            --platform managed \
-            --region ${{ env.REGION }} \
-            --allow-unauthenticated \
-            --port 8080 \
-            --memory 1Gi \
-            --cpu 1 \
-            --min-instances 0 \
-            --max-instances 3 \
-            --cpu-boost \
-            --set-env-vars "MONGO_URI=${{ secrets.MONGO_URI }},JWT_SECRET=${{ secrets.JWT_SECRET }},CORS_ORIGINS=${{ secrets.FRONTEND_URL }},IA_SERVICE_URL=${{ needs.deploy-ai-service.outputs.ai_url }}" \
-            --project ${{ env.PROJECT_ID }}
-
-      - name: Get backend URL
-        id: backend-url
-        run: |
-          URL=$(gcloud run services describe spring-service \
-            --region ${{ env.REGION }} \
-            --project ${{ env.PROJECT_ID }} \
-            --format "value(status.url)")
-          echo "url=$URL" >> $GITHUB_OUTPUT
+          aws ecs update-service \
+            --cluster workflow-cluster \
+            --service workflow-backend-svc \
+            --force-new-deployment \
+            --region $AWS_REGION
 
       - name: Summary
         run: |
-          echo "### Deploy completado" >> $GITHUB_STEP_SUMMARY
-          echo "- **AI Service:** ${{ needs.deploy-ai-service.outputs.ai_url }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Backend:** ${{ steps.backend-url.outputs.url }}" >> $GITHUB_STEP_SUMMARY
+          echo "### Deploy completado ✓" >> $GITHUB_STEP_SUMMARY
+          echo "- **AI Service:** imagen \`$ECR_REGISTRY/workflow/ai-service:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Backend:** imagen \`$ECR_REGISTRY/workflow/backend:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

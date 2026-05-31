@@ -3,10 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { RespuestaAuth, Usuario } from '../models/user.model';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly urlApi = 'http://localhost:8080/api/auth';
+  private readonly urlApi = `${environment.apiUrl}/api/auth`;
   private readonly CLAVE_TOKEN = 'workflow_token';
 
   private usuarioActualSubject = new BehaviorSubject<Usuario | null>(this.cargarUsuarioDesdeToken());

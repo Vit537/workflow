@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { RespuestaUsuario } from '../models/user.model';
+import { environment } from '../../../../environments/environment';
 
 export interface SolicitudCrearUsuario {
   nombre: string;
@@ -20,7 +21,7 @@ export interface SolicitudActualizarUsuario {
 
 @Injectable({ providedIn: 'root' })
 export class UsuarioService {
-  private readonly urlApi = 'http://localhost:8080/api/usuarios';
+  private readonly urlApi = `${environment.apiUrl}/api/usuarios`;
 
   constructor(private http: HttpClient) {}
 

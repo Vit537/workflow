@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../../../environments/environment';
 
 export interface MensajeChat {
   rol: 'user' | 'assistant';
@@ -92,7 +93,7 @@ interface GroqResponse {
 
 @Injectable({ providedIn: 'root' })
 export class ChatbotService {
-  private readonly urlApi = 'http://localhost:8080/api/ia/chat';
+  private readonly urlApi = `${environment.apiUrl}/api/ia/chat`;
 
   constructor(private http: HttpClient) {}
 

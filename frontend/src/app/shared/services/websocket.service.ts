@@ -3,6 +3,7 @@ import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { Subject, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
+import { environment } from '../../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class WebsocketService implements OnDestroy {
@@ -15,7 +16,7 @@ export class WebsocketService implements OnDestroy {
     if (this.conectado) return;
 
     this.cliente = new Client({
-      webSocketFactory: () => new SockJS('http://localhost:8080/ws'),
+      webSocketFactory: () => new SockJS(`${environment.wsUrl}/ws`),
       connectHeaders: {
         Authorization: `Bearer ${this.authService.obtenerToken() ?? ''}`,
       },

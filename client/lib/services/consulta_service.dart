@@ -3,10 +3,9 @@ import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 
-/// URL base del backend.
-/// En emulador Android usa 10.0.2.2 para alcanzar localhost del host.
-/// En dispositivo físico en la misma red, reemplaza con la IP de tu PC.
-const String _baseUrl = 'http://10.0.2.2:8080';
+/// URL base del backend en producción (Cloud Run).
+const String _baseUrl =
+    'https://spring-service-826923971440.us-central1.run.app';
 
 class ConsultaService {
   /// Crea una nueva consulta (endpoint público, sin JWT).

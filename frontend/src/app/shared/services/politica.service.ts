@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, timeout } from 'rxjs';
 import { Politica, PoliticaResumen, EstadoPolitica, Carril, Nodo, Conexion } from '../models/policy.model';
+import { environment } from '../../../../environments/environment';
 
 export interface SolicitudCrearPolitica {
   nombre: string;
@@ -21,7 +22,7 @@ export interface SolicitudActualizarDiagrama {
 
 @Injectable({ providedIn: 'root' })
 export class PoliticaService {
-  private readonly urlApi = 'http://localhost:8080/api/politicas';
+  private readonly urlApi = `${environment.apiUrl}/api/politicas`;
   private cachePoliticas: PoliticaResumen[] = [];
 
   constructor(private http: HttpClient) {}
