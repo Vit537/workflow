@@ -44,7 +44,7 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster workflow-cluster \
-            --service workflow-ai-service-svc \
+            --service workflow-ai-svc \
             --force-new-deployment \
             --region $AWS_REGION
 
@@ -84,7 +84,7 @@ jobs:
         run: |
           aws ecs update-service \
             --cluster workflow-cluster \
-            --service workflow-backend-svc \
+            --service workflow-backend-service-8xmfry08 \
             --force-new-deployment \
             --region $AWS_REGION
 
