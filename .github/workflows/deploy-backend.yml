@@ -3,7 +3,7 @@ name: Deploy Backend & AI Service
 on:
   push:
     branches:
-      - main
+      - ciclo-4
     paths:
       - 'backend/**'
       - 'ai-service/**'
