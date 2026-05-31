@@ -26,7 +26,7 @@ GROQ_API_KEY_POLICY = os.getenv("GROQ_API_KEY_POLICY", "")
 # API key para el chatbot y reportes dinámicos
 GROQ_API_KEY_CHAT = os.getenv("GROQ_API_KEY_CHAT", "")
 
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = os.getenv("GROQ_MODEL_CHAT", "llama-3.1-8b-instant")
 ALLOWED_ORIGINS = os.getenv("ALLOWED_ORIGINS", "http://localhost:4200").split(",")
 
 app = FastAPI(title="Workflow AI Service", version="1.0.0")
