@@ -26,7 +26,7 @@ public class FirebaseConfig {
           .build();
       FirebaseApp.initializeApp(opciones);
       log.info("Firebase Admin SDK inicializado correctamente");
-    } catch (IOException e) {
+    } catch (Exception e) {
       log.error("No se pudo inicializar Firebase Admin SDK (no fatal): {}", e.getMessage());
     }
   }
