@@ -6,9 +6,10 @@ RUN npm ci
 COPY . .
 # URL del backend inyectada en build time (ej: http://alb-xxx.sa-east-1.elb.amazonaws.com:8080)
 ARG BACKEND_URL=http://localhost:8080
-RUN mkdir -p src/environments && \
+RUN mkdir -p src/environments environments && \
     printf "export const environment = { production: false, apiUrl: '%s', wsUrl: '%s' };\n" "${BACKEND_URL}" "${BACKEND_URL}" > src/environments/environment.ts && \
-    printf "export const environment = { production: true, apiUrl: '%s', wsUrl: '%s' };\n" "${BACKEND_URL}" "${BACKEND_URL}" > src/environments/environment.prod.ts
+    printf "export const environment = { production: true, apiUrl: '%s', wsUrl: '%s' };\n" "${BACKEND_URL}" "${BACKEND_URL}" > src/environments/environment.prod.ts && \
+    printf "export const environment = { production: true, apiUrl: '%s', wsUrl: '%s' };\n" "${BACKEND_URL}" "${BACKEND_URL}" > environments/environment.ts
 RUN npm run build -- --configuration production
 
 # ── Stage 2: Serve con Nginx ──────────────────────────────────
