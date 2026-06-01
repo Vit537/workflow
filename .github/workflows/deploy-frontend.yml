@@ -34,7 +34,9 @@ jobs:
 
       - name: Build and push frontend image
         run: |
-          docker build -t $ECR_REGISTRY/workflow/frontend:${{ github.sha }} ./frontend
+          docker build \
+            --build-arg BACKEND_URL=${{ secrets.BACKEND_ALB_URL }} \
+            -t $ECR_REGISTRY/workflow/frontend:${{ github.sha }} ./frontend
           docker tag $ECR_REGISTRY/workflow/frontend:${{ github.sha }} $ECR_REGISTRY/workflow/frontend:latest
           docker push $ECR_REGISTRY/workflow/frontend:${{ github.sha }}
           docker push $ECR_REGISTRY/workflow/frontend:latest
