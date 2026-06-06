@@ -89,12 +89,19 @@ jobs:
           ONLYOFFICE_JWT_SECRET: ${{ secrets.ONLYOFFICE_JWT_SECRET }}
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
         run: |
+          set -euo pipefail
+
           # 1) Obtener task definition actual y limpiar campos no registrables
           TASK_DEF=$(aws ecs describe-task-definition \
             --task-definition $BACKEND_TASK_DEF \
             --query "taskDefinition" \
             --output json | \
             jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.placementConstraints,.compatibilities,.registeredAt,.registeredBy)')
+
+          if [ -z "$TASK_DEF" ] || [ "$TASK_DEF" = "null" ]; then
+            echo "ERROR: No se pudo obtener la task definition '$BACKEND_TASK_DEF'"
+            exit 1
+          fi
 
           # 2) Inyectar / actualizar variables de entorno en el contenedor
           UPDATED=$(echo "$TASK_DEF" | jq \
@@ -126,9 +133,10 @@ jobs:
               ]
             )')
 
-          # 3) Registrar nueva revisión
-          NEW_REVISION=$(echo "$UPDATED" | aws ecs register-task-definition \
-            --cli-input-json file:///dev/stdin \
+          # 3) Registrar nueva revisión usando archivo temporal (más confiable que stdin)
+          echo "$UPDATED" > /tmp/task-def.json
+          NEW_REVISION=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/task-def.json \
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
 
