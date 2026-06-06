@@ -69,8 +69,9 @@ jobs:
               ]
             }')
 
-          NEW_REVISION=$(echo "$TASK_DEF" | aws ecs register-task-definition \
-            --cli-input-json file:///dev/stdin \
+          echo "$TASK_DEF" > /tmp/onlyoffice-td.json
+          NEW_REVISION=$(aws ecs register-task-definition \
+            --cli-input-json file:///tmp/onlyoffice-td.json \
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
 
