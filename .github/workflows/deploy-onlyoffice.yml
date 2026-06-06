@@ -1,0 +1,100 @@
+name: Deploy OnlyOffice
+
+# Se ejecuta manualmente desde GitHub Actions → Run workflow.
+# OnlyOffice es un servicio estable (imagen pública), no necesita
+# build. Solo se redespliega cuando cambia el JWT_SECRET o la config.
+on:
+  workflow_dispatch:
+
+env:
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  OO_TASK_DEF: workflow-onlyoffice-td   # nombre que darás a la Task Definition en ECS
+
+jobs:
+  deploy-onlyoffice:
+    name: Register task def & Deploy OnlyOffice
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      # ── Registrar (o actualizar) la Task Definition de OnlyOffice ──────────
+      # La imagen se toma de Docker Hub. No necesita ECR.
+      # CPU 2048 (2 vCPU) / Memory 4096 MB — mínimo recomendado por OnlyOffice.
+      - name: Register OnlyOffice task definition
+        env:
+          ONLYOFFICE_JWT_SECRET: ${{ secrets.ONLYOFFICE_JWT_SECRET }}
+          EXECUTION_ROLE_ARN: ${{ secrets.ECS_EXECUTION_ROLE_ARN }}
+        run: |
+          TASK_DEF=$(jq -n \
+            --arg secret "$ONLYOFFICE_JWT_SECRET" \
+            --arg exec_role "$EXECUTION_ROLE_ARN" \
+            --arg region "$AWS_REGION" \
+            '{
+              "family": "workflow-onlyoffice-td",
+              "networkMode": "awsvpc",
+              "requiresCompatibilities": ["FARGATE"],
+              "cpu": "2048",
+              "memory": "4096",
+              "executionRoleArn": $exec_role,
+              "containerDefinitions": [
+                {
+                  "name": "onlyoffice",
+                  "image": "onlyoffice/documentserver:latest",
+                  "essential": true,
+                  "portMappings": [
+                    {"containerPort": 80, "protocol": "tcp"},
+                    {"containerPort": 443, "protocol": "tcp"}
+                  ],
+                  "environment": [
+                    {"name": "JWT_ENABLED",  "value": "true"},
+                    {"name": "JWT_SECRET",   "value": $secret},
+                    {"name": "JWT_HEADER",   "value": "Authorization"}
+                  ],
+                  "logConfiguration": {
+                    "logDriver": "awslogs",
+                    "options": {
+                      "awslogs-group":         "/ecs/workflow-onlyoffice",
+                      "awslogs-region":         $region,
+                      "awslogs-stream-prefix":  "onlyoffice",
+                      "awslogs-create-group":   "true"
+                    }
+                  }
+                }
+              ]
+            }')
+
+          NEW_REVISION=$(echo "$TASK_DEF" | aws ecs register-task-definition \
+            --cli-input-json file:///dev/stdin \
+            --query "taskDefinition.taskDefinitionArn" \
+            --output text)
+
+          echo "Nueva task definition: $NEW_REVISION"
+          echo "NEW_REVISION=$NEW_REVISION" >> $GITHUB_ENV
+
+      # ── Actualizar el servicio ECS ─────────────────────────────────────────
+      # El servicio "workflow-onlyoffice-svc" debe estar creado previamente
+      # en AWS (ECS → Create Service, tipo FARGATE, con su propio ALB/target group).
+      - name: Deploy OnlyOffice to ECS
+        run: |
+          aws ecs update-service \
+            --cluster workflow-cluster \
+            --service workflow-onlyoffice-svc \
+            --task-definition "$NEW_REVISION" \
+            --region $AWS_REGION
+
+      - name: Summary
+        run: |
+          echo "### Deploy OnlyOffice completado ✓" >> $GITHUB_STEP_SUMMARY
+          echo "- **Task definition:** \`$NEW_REVISION\`" >> $GITHUB_STEP_SUMMARY
+          echo "- **Servicio:** \`workflow-onlyoffice-svc\`" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Próximos pasos si es el primer deploy:**" >> $GITHUB_STEP_SUMMARY
+          echo "1. Verificar que el ALB del OnlyOffice es accesible por HTTPS." >> $GITHUB_STEP_SUMMARY
+          echo "2. Actualizar \`ONLYOFFICE_PUBLIC_URL\` en Secrets con la URL del ALB." >> $GITHUB_STEP_SUMMARY
+          echo "3. Re-ejecutar \`Deploy Backend & AI Service\` para que el backend tome la nueva URL." >> $GITHUB_STEP_SUMMARY
