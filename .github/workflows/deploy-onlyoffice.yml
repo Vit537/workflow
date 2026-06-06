@@ -1,14 +1,10 @@
 name: Deploy OnlyOffice
 
-# Se ejecuta manualmente desde GitHub Actions → Run workflow.
-# OnlyOffice es un servicio estable (imagen pública), no necesita
-# build. Solo se redespliega cuando cambia el JWT_SECRET o la config.
 on:
   workflow_dispatch:
 
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
-  OO_TASK_DEF: workflow-onlyoffice-td   # nombre que darás a la Task Definition en ECS
 
 jobs:
   deploy-onlyoffice:
@@ -23,79 +19,98 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
 
-      # ── Registrar (o actualizar) la Task Definition de OnlyOffice ──────────
-      # La imagen se toma de Docker Hub. No necesita ECR.
-      # CPU 2048 (2 vCPU) / Memory 4096 MB — mínimo recomendado por OnlyOffice.
+      # ── PASO 1: Verificar que todos los secrets esten configurados ─────────
+      - name: Verify configuration
+        env:
+          ONLYOFFICE_JWT_SECRET: ${{ secrets.ONLYOFFICE_JWT_SECRET }}
+          EXECUTION_ROLE_ARN: ${{ secrets.ECS_EXECUTION_ROLE_ARN }}
+        run: |
+          set -euo pipefail
+          echo "=== Verificando secrets ==="
+          echo "AWS_REGION            : ${AWS_REGION:-(NO CONFIGURADO)}"
+          echo "ONLYOFFICE_JWT_SECRET : $([ -n "$ONLYOFFICE_JWT_SECRET" ] && echo "SET (${#ONLYOFFICE_JWT_SECRET} chars)" || echo "NO CONFIGURADO")"
+          echo "ECS_EXECUTION_ROLE_ARN: $([ -n "$EXECUTION_ROLE_ARN" ] && echo "SET (${#EXECUTION_ROLE_ARN} chars)" || echo "NO CONFIGURADO")"
+
+          MISSING=0
+          [ -z "$AWS_REGION" ]            && echo "ERROR: falta secret AWS_REGION"            && MISSING=1
+          [ -z "$ONLYOFFICE_JWT_SECRET" ] && echo "ERROR: falta secret ONLYOFFICE_JWT_SECRET"  && MISSING=1
+          [ -z "$EXECUTION_ROLE_ARN" ]    && echo "ERROR: falta secret ECS_EXECUTION_ROLE_ARN" && MISSING=1
+          [ "$MISSING" -eq 1 ] && exit 1
+
+          echo "=== Todos los secrets requeridos estan configurados ==="
+
+      # ── PASO 2: Generar JSON y registrar Task Definition ──────────────────
       - name: Register OnlyOffice task definition
         env:
           ONLYOFFICE_JWT_SECRET: ${{ secrets.ONLYOFFICE_JWT_SECRET }}
           EXECUTION_ROLE_ARN: ${{ secrets.ECS_EXECUTION_ROLE_ARN }}
         run: |
-          TASK_DEF=$(jq -n \
-            --arg secret "$ONLYOFFICE_JWT_SECRET" \
-            --arg exec_role "$EXECUTION_ROLE_ARN" \
-            --arg region "$AWS_REGION" \
-            '{
+          set -euo pipefail
+
+          # Usar Python para generar JSON (evita problemas de quoting/escaping con jq+bash)
+          python3 - <<'PYEOF'
+          import json, os, sys
+          jwt_secret = os.environ.get("ONLYOFFICE_JWT_SECRET", "")
+          exec_role  = os.environ.get("EXECUTION_ROLE_ARN", "")
+          region     = os.environ.get("AWS_REGION", "")
+          td = {
               "family": "workflow-onlyoffice-td",
               "networkMode": "awsvpc",
               "requiresCompatibilities": ["FARGATE"],
               "cpu": "2048",
               "memory": "4096",
-              "executionRoleArn": $exec_role,
-              "containerDefinitions": [
-                {
+              "executionRoleArn": exec_role,
+              "containerDefinitions": [{
                   "name": "onlyoffice",
                   "image": "onlyoffice/documentserver:latest",
-                  "essential": true,
+                  "essential": True,
                   "portMappings": [
-                    {"containerPort": 80, "protocol": "tcp"},
-                    {"containerPort": 443, "protocol": "tcp"}
+                      {"containerPort": 80, "protocol": "tcp"},
+                      {"containerPort": 443, "protocol": "tcp"}
                   ],
                   "environment": [
-                    {"name": "JWT_ENABLED",  "value": "true"},
-                    {"name": "JWT_SECRET",   "value": $secret},
-                    {"name": "JWT_HEADER",   "value": "Authorization"}
+                      {"name": "JWT_ENABLED", "value": "true"},
+                      {"name": "JWT_SECRET",  "value": jwt_secret},
+                      {"name": "JWT_HEADER",  "value": "Authorization"}
                   ],
                   "logConfiguration": {
-                    "logDriver": "awslogs",
-                    "options": {
-                      "awslogs-group":         "/ecs/workflow-onlyoffice",
-                      "awslogs-region":         $region,
-                      "awslogs-stream-prefix":  "onlyoffice",
-                      "awslogs-create-group":   "true"
-                    }
+                      "logDriver": "awslogs",
+                      "options": {
+                          "awslogs-group":        "/ecs/workflow-onlyoffice",
+                          "awslogs-region":        region,
+                          "awslogs-stream-prefix": "onlyoffice",
+                          "awslogs-create-group":  "true"
+                      }
                   }
-                }
-              ]
-            }')
+              }]
+          }
+          with open("/tmp/onlyoffice-td.json", "w") as f:
+              json.dump(td, f, indent=2)
+          size = os.path.getsize("/tmp/onlyoffice-td.json")
+          print(f"JSON generado: {size} bytes  family={td['family']}  cpu={td['cpu']}  memory={td['memory']}")
+          PYEOF
 
-          echo "$TASK_DEF" > /tmp/onlyoffice-td.json
+          echo "=== Registrando task definition en ECS ==="
           NEW_REVISION=$(aws ecs register-task-definition \
             --cli-input-json file:///tmp/onlyoffice-td.json \
             --query "taskDefinition.taskDefinitionArn" \
             --output text)
 
           echo "Nueva task definition: $NEW_REVISION"
-          echo "NEW_REVISION=$NEW_REVISION" >> $GITHUB_ENV
+          echo "NEW_REVISION=$NEW_REVISION" >> "$GITHUB_ENV"
 
-      # ── Actualizar el servicio ECS ─────────────────────────────────────────
-      # El servicio "workflow-onlyoffice-svc" debe estar creado previamente
-      # en AWS (ECS → Create Service, tipo FARGATE, con su propio ALB/target group).
+      # ── PASO 3: Actualizar el servicio ECS ────────────────────────────────
       - name: Deploy OnlyOffice to ECS
         run: |
+          set -euo pipefail
           aws ecs update-service \
             --cluster workflow-cluster \
             --service workflow-onlyoffice-svc \
             --task-definition "$NEW_REVISION" \
-            --region $AWS_REGION
+            --region "$AWS_REGION"
 
       - name: Summary
         run: |
-          echo "### Deploy OnlyOffice completado ✓" >> $GITHUB_STEP_SUMMARY
-          echo "- **Task definition:** \`$NEW_REVISION\`" >> $GITHUB_STEP_SUMMARY
-          echo "- **Servicio:** \`workflow-onlyoffice-svc\`" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "**Próximos pasos si es el primer deploy:**" >> $GITHUB_STEP_SUMMARY
-          echo "1. Verificar que el ALB del OnlyOffice es accesible por HTTPS." >> $GITHUB_STEP_SUMMARY
-          echo "2. Actualizar \`ONLYOFFICE_PUBLIC_URL\` en Secrets con la URL del ALB." >> $GITHUB_STEP_SUMMARY
-          echo "3. Re-ejecutar \`Deploy Backend & AI Service\` para que el backend tome la nueva URL." >> $GITHUB_STEP_SUMMARY
+          echo "### Deploy OnlyOffice completado" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Task definition:** \`$NEW_REVISION\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- **Servicio:** \`workflow-onlyoffice-svc\`" >> "$GITHUB_STEP_SUMMARY"
