@@ -36,6 +36,12 @@
       </mat-card-content>
     </mat-card>
 
+    <mat-tab-group class="consulta-tabs" [(selectedIndex)]="tabSeleccionada">
+
+    <!-- ═══ Pestaña: Atención ═══ -->
+    <mat-tab label="Atención">
+      <div class="tab-contenido">
+
     <!-- Verificación del cliente -->
     <mat-card class="accion-card verificacion-card">
       <mat-card-header>
@@ -166,5 +172,69 @@
     <!-- Mensajes de éxito/error -->
     <div *ngIf="exito" class="exito-msg">{{ exito }}</div>
     <div *ngIf="error" class="error-msg">{{ error }}</div>
+
+      </div>
+    </mat-tab>
+
+    <!-- ═══ Pestaña: Chat con el cliente ═══ -->
+    <mat-tab label="Chat con el cliente">
+      <div class="tab-contenido chat">
+        <div class="chat-hilo">
+          <p *ngIf="mensajes.length === 0" class="chat-vacio">
+            Aún no hay mensajes con el cliente.
+          </p>
+          <div *ngFor="let m of mensajes" class="msg" [class.mio]="esMio(m)">
+            <span class="msg-autor">{{ esMio(m) ? 'Tú' : m.autorNombre }}</span>
+            <span class="msg-texto">{{ m.texto }}</span>
+            <span class="msg-fecha">{{ m.fecha | date:'short' }}</span>
+          </div>
+        </div>
+        <div class="chat-input">
+          <mat-form-field appearance="outline" class="campo-completo">
+            <mat-label>Escribe un mensaje para el cliente</mat-label>
+            <input matInput [(ngModel)]="nuevoMensaje" (keydown.enter)="enviarMensaje()">
+          </mat-form-field>
+          <button mat-fab color="primary" (click)="enviarMensaje()" [disabled]="!nuevoMensaje.trim()">
+            <mat-icon>send</mat-icon>
+          </button>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ═══ Pestaña: Datos enviados por el cliente ═══ -->
+    <mat-tab label="Datos del cliente">
+      <div class="tab-contenido">
+        <p *ngIf="!consulta.tramiteId" class="vacio-datos">
+          Esta consulta aún no tiene un trámite iniciado, por lo que el cliente no ha enviado datos.
+        </p>
+
+        <p *ngIf="consulta.tramiteId && pasosConDatos.length === 0" class="vacio-datos">
+          El cliente todavía no ha enviado datos ni archivos.
+        </p>
+
+        <mat-card *ngFor="let p of pasosConDatos" class="datos-card">
+          <mat-card-header>
+            <mat-card-title>{{ p.etiquetaNodo }}</mat-card-title>
+            <mat-card-subtitle>{{ p.carrilNombre }}</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <div class="dato-fila" *ngFor="let d of entradasDatos(p)">
+              <span class="dato-etiqueta">{{ etiquetaCampo(p, d.campo) }}:</span>
+
+              <button *ngIf="esCampoArchivo(p, d.campo); else textoDato"
+                mat-stroked-button color="primary" (click)="descargarDocumento(d.valor)">
+                <mat-icon>download</mat-icon> Descargar documento
+              </button>
+
+              <ng-template #textoDato>
+                <span class="dato-valor">{{ d.valor }}</span>
+              </ng-template>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </mat-tab>
+
+    </mat-tab-group>
   </ng-container>
 </div>

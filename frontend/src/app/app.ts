@@ -19,7 +19,8 @@ export class App implements OnInit {
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: any) => {
-        this.mostrarNavbar = !e.urlAfterRedirects.startsWith('/login');
+        const url = e.urlAfterRedirects;
+        this.mostrarNavbar = !url.startsWith('/login') && !url.startsWith('/cliente');
         this.usuario = this.authService.obtenerUsuarioActual();
       });
 

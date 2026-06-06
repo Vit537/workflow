@@ -15,6 +15,12 @@
       <mat-icon>add</mat-icon> Carril
     </button>
 
+    <!-- Repositorio documental de la política -->
+    <button mat-stroked-button (click)="repositorioAbierto = true" class="btn-repositorio"
+      matTooltip="Repositorio documental de la política">
+      <mat-icon>folder_copy</mat-icon> Documentos
+    </button>
+
     <!-- CU-08: abrir panel IA -->
     <button mat-stroked-button (click)="toggleIA()"
       [disabled]="politica?.estado === 'PUBLICADA'" class="btn-ia"
@@ -132,6 +138,13 @@
       (autoGuardar)="programarAutoGuardado()"
       (cerrado)="nodoSeleccionado = null">
     </app-nodo-propiedades>
+
+    <!-- Repositorio documental (F4/F5) -->
+    <app-repositorio-documental
+      [abierto]="repositorioAbierto"
+      [politicaId]="politica?.id ?? null"
+      (cerrado)="repositorioAbierto = false">
+    </app-repositorio-documental>
 
   </div>
 </div>

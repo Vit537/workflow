@@ -1,5 +1,6 @@
 package com.workflow.policy.dto;
 
+import com.workflow.document.model.Responsable;
 import com.workflow.policy.model.Carril;
 import com.workflow.policy.model.Conexion;
 import com.workflow.policy.model.EstadoPolitica;
@@ -22,6 +23,7 @@ public class RespuestaPolitica {
   private List<Carril> carriles;
   private List<Nodo> nodos;
   private List<Conexion> conexiones;
+  private List<Responsable> responsables;
   private Instant creadoEn;
   private Instant actualizadoEn;
 }

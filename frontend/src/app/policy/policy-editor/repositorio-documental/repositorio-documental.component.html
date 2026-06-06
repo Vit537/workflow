@@ -1,0 +1,258 @@
+<div class="modal-backdrop" (click)="cerrado.emit()"></div>
+
+<div class="modal-card" (click)="$event.stopPropagation()">
+
+  <!-- input de archivo oculto, reutilizado para nuevo doc o nueva versión -->
+  <input #fileInput type="file" hidden (change)="onArchivoSeleccionado($event)">
+
+  <div class="repo-header">
+    <div class="repo-titulo">
+      <mat-icon>folder_copy</mat-icon>
+      <h3>Repositorio documental</h3>
+    </div>
+    <button mat-icon-button (click)="cerrado.emit()" matTooltip="Cerrar"><mat-icon>close</mat-icon></button>
+  </div>
+
+  <mat-tab-group class="repo-tabs" (selectedTabChange)="onTab($event.index)">
+
+    <!-- ── Pestaña Documentos (F4/F5) ───────────────────────────────────── -->
+    <mat-tab label="Documentos">
+      <div class="repo-acciones">
+        <button mat-raised-button color="primary"
+          [disabled]="subiendo || soloLectura"
+          (click)="pedirArchivoNuevo(fileInput)">
+          <mat-spinner *ngIf="subiendo" diameter="18"></mat-spinner>
+          <mat-icon *ngIf="!subiendo">upload_file</mat-icon>
+          <span>{{ subiendo ? 'Subiendo...' : 'Subir documento' }}</span>
+        </button>
+        <button mat-icon-button (click)="cargar()" matTooltip="Recargar"><mat-icon>refresh</mat-icon></button>
+      </div>
+
+      <div class="repo-body">
+        <div *ngIf="cargando" class="repo-cargando">
+          <mat-spinner diameter="32"></mat-spinner>
+        </div>
+
+        <p *ngIf="!cargando && documentos.length === 0" class="repo-vacio">
+          <mat-icon>folder_off</mat-icon>
+          Aún no hay documentos en este repositorio.
+        </p>
+
+        <div *ngFor="let doc of documentos" class="doc-item" [class.archivado]="doc.estado === 'ARCHIVADO'">
+          <div class="doc-fila">
+            <mat-icon class="doc-icono">{{ iconoArchivo(doc.ultimaVersion?.nombreArchivo || doc.nombre) }}</mat-icon>
+
+            <div class="doc-info">
+              <span class="doc-nombre">
+                {{ doc.nombre }}
+                <span class="doc-version">v{{ doc.versionActual }}</span>
+                <span *ngIf="doc.estado === 'ARCHIVADO'" class="doc-badge badge-archivado">Archivado</span>
+                <span *ngIf="doc.estado === 'BLOQUEADO'" class="doc-badge badge-bloqueado">
+                  <mat-icon>lock</mat-icon> {{ doc.bloqueadoPorNombre }}
+                </span>
+                <span *ngIf="doc.editandoEnVivo" class="doc-badge badge-envivo">
+                  <mat-icon>edit_note</mat-icon> Editando en vivo
+                </span>
+              </span>
+              <span class="doc-meta">
+                {{ formatoTamano(doc.ultimaVersion?.tamanoBytes) }}
+                · {{ doc.ultimaVersion?.subidoPorNombre || doc.creadoPorNombre }}
+                · {{ doc.actualizadoEn | date:'short' }}
+              </span>
+            </div>
+
+            <div class="doc-botones">
+              <button mat-icon-button color="primary" *ngIf="puedeEditarEnVivo(doc)"
+                matTooltip="Editar en línea (co-edición)" (click)="abrirEditor(doc)">
+                <mat-icon>edit_note</mat-icon>
+              </button>
+              <button mat-icon-button matTooltip="Descargar" (click)="descargar(doc)">
+                <mat-icon>download</mat-icon>
+              </button>
+              <button mat-icon-button matTooltip="Historial / comentarios" (click)="toggleHistorial(doc)"
+                [color]="expandidoId === doc.id ? 'primary' : ''">
+                <mat-icon>history</mat-icon>
+              </button>
+              <button mat-icon-button matTooltip="Subir nueva versión"
+                [disabled]="subiendo || soloLectura"
+                (click)="pedirNuevaVersion(doc.id, fileInput)">
+                <mat-icon>upload</mat-icon>
+              </button>
+
+              <!-- Bloqueo / check-out -->
+              <button mat-icon-button *ngIf="!doc.bloqueadoPor"
+                matTooltip="Tomar edición (bloquear)" (click)="bloquear(doc)">
+                <mat-icon>lock_open</mat-icon>
+              </button>
+              <button mat-icon-button color="primary"
+                *ngIf="doc.bloqueadoPor && (loBloqueoYo(doc) || esAdmin)"
+                matTooltip="Liberar edición" (click)="desbloquear(doc)">
+                <mat-icon>lock</mat-icon>
+              </button>
+              <button mat-icon-button disabled
+                *ngIf="doc.bloqueadoPor && !loBloqueoYo(doc) && !esAdmin"
+                [matTooltip]="'Bloqueado por ' + doc.bloqueadoPorNombre">
+                <mat-icon>lock</mat-icon>
+              </button>
+
+              <button mat-icon-button color="warn" matTooltip="Archivar"
+                [disabled]="soloLectura || doc.estado === 'ARCHIVADO'"
+                (click)="archivar(doc)">
+                <mat-icon>archive</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <!-- Historial de versiones -->
+          <div class="doc-historial" *ngIf="expandidoId === doc.id">
+            <div class="hist-cabecera">Historial de versiones</div>
+            <div *ngFor="let v of versionesPorDoc[doc.id]" class="hist-fila"
+              [class.actual]="v.numero === doc.versionActual">
+              <span class="hist-num">v{{ v.numero }}</span>
+              <span class="hist-nombre">{{ v.nombreArchivo }}</span>
+              <span class="hist-meta">
+                {{ v.subidoPorNombre }} · {{ v.subidoEn | date:'short' }}
+                <em *ngIf="v.notaCambio">— {{ v.notaCambio }}</em>
+              </span>
+              <button mat-icon-button matTooltip="Descargar esta versión" (click)="descargarVersion(doc, v)">
+                <mat-icon>download</mat-icon>
+              </button>
+              <button mat-icon-button matTooltip="Restaurar esta versión"
+                [disabled]="soloLectura || v.numero === doc.versionActual"
+                (click)="restaurar(doc, v)">
+                <mat-icon>restore</mat-icon>
+              </button>
+            </div>
+            <p *ngIf="!versionesPorDoc[doc.id]" class="hist-cargando">Cargando historial...</p>
+
+            <!-- F7: Presencia en tiempo real -->
+            <div class="presencia" *ngIf="presentes.length > 0">
+              <mat-icon>visibility</mat-icon>
+              <span>Viendo ahora:</span>
+              <span class="presencia-chip" *ngFor="let p of presentes">{{ p.usuarioNombre }}</span>
+            </div>
+
+            <!-- F7: Comentarios -->
+            <div class="comentarios">
+              <div class="hist-cabecera">Comentarios</div>
+              <div *ngFor="let c of comentariosDoc" class="coment-fila">
+                <mat-icon>account_circle</mat-icon>
+                <div class="coment-cuerpo">
+                  <span class="coment-autor">{{ c.autorNombre }}
+                    <span class="coment-fecha">{{ c.fecha | date:'short' }}</span>
+                  </span>
+                  <span class="coment-texto">{{ c.texto }}</span>
+                </div>
+              </div>
+              <p *ngIf="comentariosDoc.length === 0" class="coment-vacio">Sin comentarios todavía.</p>
+
+              <div class="coment-nuevo">
+                <mat-form-field appearance="outline" class="coment-input">
+                  <mat-label>Escribir un comentario</mat-label>
+                  <input matInput [(ngModel)]="nuevoComentario" (keydown.enter)="enviarComentario(doc)">
+                </mat-form-field>
+                <button mat-icon-button color="primary" matTooltip="Comentar"
+                  [disabled]="!nuevoComentario.trim()" (click)="enviarComentario(doc)">
+                  <mat-icon>send</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Pestaña Responsables (F6) ────────────────────────────────────── -->
+    <mat-tab label="Responsables">
+      <div class="repo-body">
+        <p class="seccion-ayuda">
+          <mat-icon>info</mat-icon>
+          Los responsables tienen un rol sobre el repositorio: PROPIETARIO (todo), EDITOR (sube versiones),
+          COMENTARISTA (comenta) o LECTOR (solo ve/descarga).
+        </p>
+
+        <!-- Alta de responsable (solo ADMIN) -->
+        <div class="form-responsable" *ngIf="esAdmin">
+          <mat-form-field appearance="outline" class="campo-correo">
+            <mat-label>Correo del usuario</mat-label>
+            <input matInput [(ngModel)]="nuevoCorreo" placeholder="usuario@correo.com"
+              (keydown.enter)="agregarResponsable()">
+          </mat-form-field>
+          <mat-form-field appearance="outline" class="campo-rol">
+            <mat-label>Rol</mat-label>
+            <mat-select [(ngModel)]="nuevoRol">
+              <mat-option *ngFor="let r of rolesDisponibles" [value]="r">{{ r }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="agregarResponsable()"
+            [disabled]="!nuevoCorreo.trim()">
+            <mat-icon>person_add</mat-icon> Agregar
+          </button>
+        </div>
+        <p *ngIf="!esAdmin" class="seccion-ayuda aviso">
+          <mat-icon>lock</mat-icon> Solo un administrador puede gestionar responsables.
+        </p>
+
+        <div *ngIf="cargandoResponsables" class="repo-cargando">
+          <mat-spinner diameter="28"></mat-spinner>
+        </div>
+
+        <p *ngIf="!cargandoResponsables && responsables.length === 0" class="repo-vacio">
+          <mat-icon>group_off</mat-icon>
+          Sin responsables asignados. El creador de la política es propietario por defecto.
+        </p>
+
+        <div *ngFor="let r of responsables" class="resp-fila">
+          <mat-icon class="resp-icono">account_circle</mat-icon>
+          <div class="resp-info">
+            <span class="resp-nombre">{{ r.nombre || r.correo }}</span>
+            <span class="resp-correo">{{ r.correo }}</span>
+          </div>
+          <span class="resp-rol" [attr.data-rol]="r.rolDocumental">{{ r.rolDocumental }}</span>
+          <button mat-icon-button color="warn" *ngIf="esAdmin"
+            matTooltip="Quitar responsable" (click)="eliminarResponsable(r)">
+            <mat-icon>person_remove</mat-icon>
+          </button>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- ── Pestaña Actividad / Logs (F6) ────────────────────────────────── -->
+    <mat-tab label="Actividad">
+      <div class="repo-body">
+        <div class="repo-acciones">
+          <span class="seccion-titulo">Registro de quién ve y modifica</span>
+          <button mat-icon-button (click)="cargarLogs()" matTooltip="Recargar"><mat-icon>refresh</mat-icon></button>
+        </div>
+
+        <div *ngIf="cargandoLogs" class="repo-cargando">
+          <mat-spinner diameter="28"></mat-spinner>
+        </div>
+
+        <p *ngIf="!cargandoLogs && logs.length === 0" class="repo-vacio">
+          <mat-icon>history_toggle_off</mat-icon>
+          Sin actividad registrada todavía.
+        </p>
+
+        <div *ngFor="let log of logs" class="log-fila">
+          <mat-icon class="log-icono">{{ iconoAccion(log.accion) }}</mat-icon>
+          <span class="log-texto">
+            <strong>{{ log.usuarioCorreo }}</strong> {{ etiquetaAccion(log.accion) }}
+            <span *ngIf="log.versionNumero"> (v{{ log.versionNumero }})</span>
+            <em *ngIf="log.detalle">— {{ log.detalle }}</em>
+          </span>
+          <span class="log-fecha">{{ log.fecha | date:'short' }}</span>
+        </div>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
+</div>
+
+<!-- FO4: Editor de co-edición en vivo (OnlyOffice) -->
+<app-editor-onlyoffice
+  [abierto]="!!editorAbiertoId"
+  [documentoId]="editorAbiertoId"
+  [titulo]="editorTitulo"
+  (cerrado)="onEditorCerrado()">
+</app-editor-onlyoffice>

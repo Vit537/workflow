@@ -1,5 +1,6 @@
 package com.workflow.policy.model;
 
+import com.workflow.document.model.Responsable;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -39,6 +40,10 @@ public class Politica {
 
   @Builder.Default
   private List<Conexion> conexiones = new ArrayList<>();
+
+  /** Responsables del repositorio documental de esta política y su rol documental. */
+  @Builder.Default
+  private List<Responsable> responsables = new ArrayList<>();
 
   @CreatedDate
   private Instant creadoEn;

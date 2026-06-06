@@ -21,6 +21,10 @@ public class Consulta {
   @Id
   private String id;
 
+  /** Id del usuario CLIENTE dueño de la consulta (autenticado). */
+  @Indexed
+  private String clienteId;
+
   /** Datos del cliente */
   private String clienteNombre;
   @Indexed

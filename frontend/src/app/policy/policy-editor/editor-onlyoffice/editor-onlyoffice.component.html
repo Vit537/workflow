@@ -1,0 +1,32 @@
+<div class="oo-backdrop" *ngIf="abierto"></div>
+
+<div class="oo-modal" *ngIf="abierto">
+  <div class="oo-header">
+    <div class="oo-titulo">
+      <mat-icon>edit_document</mat-icon>
+      <h3>{{ titulo || 'Edición en línea' }}</h3>
+      <span class="oo-modo" *ngIf="soloLectura">
+        <mat-icon>visibility</mat-icon> Solo lectura
+      </span>
+    </div>
+    <button mat-icon-button (click)="cerrar()" matTooltip="Cerrar editor">
+      <mat-icon>close</mat-icon>
+    </button>
+  </div>
+
+  <div class="oo-cuerpo">
+    <div class="oo-cargando" *ngIf="cargando">
+      <mat-spinner diameter="40"></mat-spinner>
+      <span>Abriendo el editor en línea…</span>
+    </div>
+
+    <div class="oo-error" *ngIf="error">
+      <mat-icon>cloud_off</mat-icon>
+      <p>{{ error }}</p>
+      <button mat-stroked-button (click)="cerrar()">Cerrar</button>
+    </div>
+
+    <!-- OnlyOffice monta el editor dentro de este contenedor. -->
+    <div [id]="contenedorId" class="oo-editor" [class.oculto]="cargando || error"></div>
+  </div>
+</div>

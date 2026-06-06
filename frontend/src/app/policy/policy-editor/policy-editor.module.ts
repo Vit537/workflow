@@ -21,6 +21,8 @@ import { EditorPoliticaComponent } from './editor-politica.component';
 import { NodoPropiedadesComponent } from './nodo-propiedades/nodo-propiedades.component';
 import { PanelPublicarComponent } from './panel-publicar/panel-publicar.component';
 import { PanelIaComponent } from './panel-ia/panel-ia.component';
+import { RepositorioDocumentalComponent } from './repositorio-documental/repositorio-documental.component';
+import { EditorOnlyOfficeComponent } from './editor-onlyoffice/editor-onlyoffice.component';
 
 @NgModule({
   declarations: [
@@ -28,6 +30,8 @@ import { PanelIaComponent } from './panel-ia/panel-ia.component';
     NodoPropiedadesComponent,
     PanelPublicarComponent,
     PanelIaComponent,
+    RepositorioDocumentalComponent,
+    EditorOnlyOfficeComponent,
   ],
   imports: [
     CommonModule,

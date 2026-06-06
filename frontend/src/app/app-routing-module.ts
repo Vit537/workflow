@@ -19,6 +19,10 @@ const routes: Routes = [
     canActivate: [AuthGuard],
     loadChildren: () => import('./workflow/workflow-module').then(m => m.WorkflowModule),
   },
+  {
+    path: 'cliente',
+    loadChildren: () => import('./cliente/cliente-module').then(m => m.ClienteModule),
+  },
   { path: '**', redirectTo: '/login' },
 ];
 

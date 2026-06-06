@@ -1,61 +1,156 @@
-PS C:\Users\HP\Desktop\sw1-primer-parcial\primer_parcial\backend> mvn spring-boot:run
-[INFO] Scanning for projects...
-[INFO] 
-[INFO] --------------------< com.workflow:workflow-engine >--------------------
-[INFO] Building workflow-engine 0.0.1-SNAPSHOT
-[INFO]   from pom.xml
-[INFO] --------------------------------[ jar ]---------------------------------
-[INFO] 
-[INFO] >>> spring-boot:3.3.6:run (default-cli) > test-compile @ workflow-engine >>>
-[INFO] 
-[INFO] --- resources:3.3.1:resources (default-resources) @ workflow-engine ---
-[INFO] Copying 1 resource from src\main\resources to target\classes
-[INFO] Copying 1 resource from src\main\resources to target\classes
-[INFO] 
-[INFO] --- compiler:3.13.0:compile (default-compile) @ workflow-engine ---
-[INFO] Nothing to compile - all classes are up to date.
-[INFO] 
-[INFO] --- resources:3.3.1:testResources (default-testResources) @ workflow-engine ---
-[INFO] skip non existing resourceDirectory C:\Users\HP\Desktop\sw1-primer-parcial\primer_parcial\backend\src\test\resources
-[INFO] 
-[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ workflow-engine ---
-[INFO] Nothing to compile - all classes are up to date.
-[INFO] 
-[INFO] <<< spring-boot:3.3.6:run (default-cli) < test-compile @ workflow-engine <<<
-[INFO] 
-[INFO] 
-[INFO] --- spring-boot:3.3.6:run (default-cli) @ workflow-engine ---
-[INFO] Attaching agents: []
-Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+Run docker build \
+  docker build \
+    --build-arg BACKEND_URL=*** \
+    -t $ECR_REGISTRY/workflow/frontend:6f4bc23319acd114a9d9c6a8ca9f7c42b4b09605 ./frontend
+  docker tag $ECR_REGISTRY/workflow/frontend:6f4bc23319acd114a9d9c6a8ca9f7c42b4b09605 $ECR_REGISTRY/workflow/frontend:latest
+  docker push $ECR_REGISTRY/workflow/frontend:6f4bc23319acd114a9d9c6a8ca9f7c42b4b09605
+  docker push $ECR_REGISTRY/workflow/frontend:latest
+  shell: /usr/bin/bash -e {0}
+  env:
+    AWS_REGION: ***
+    ECR_REGISTRY: ***
+    AWS_DEFAULT_REGION: ***
+    AWS_ACCESS_KEY_ID: ***
+    AWS_SECRET_ACCESS_KEY: ***
+#0 building with "default" instance using docker driver
 
-  .   ____          _            __ _ _
- /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
-( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
- \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
-  '  |____| .__|_| |_|_| |_\__, | / / / /
- =========|_|==============|___/=/_/_/_/
+#1 [internal] load build definition from Dockerfile
+#1 transferring dockerfile: 1.13kB done
+#1 DONE 0.0s
 
- :: Spring Boot ::                (v3.3.6)
+#2 [auth] library/node:pull token for registry-1.docker.io
+#2 DONE 0.0s
 
-2026-05-31T23:07:03.325-04:00  INFO 8408 --- [           main] com.workflow.WorkflowApplication         : Starting WorkflowApplication using Java 17.0.16 with PID 8408 (C:\Users\HP\Desktop\sw1-primer-parcial\primer_parcial\backend\target\classes started by HP in C:\Users\HP\Desktop\sw1-primer-parcial\primer_parcial\backend)
-2026-05-31T23:07:03.328-04:00  INFO 8408 --- [           main] com.workflow.WorkflowApplication         : No active profile set, falling back to 1 default profile: "default"
-2026-05-31T23:07:04.581-04:00  INFO 8408 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data MongoDB repositories in DEFAULT mode.
-2026-05-31T23:07:04.679-04:00  INFO 8408 --- [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 92 ms. Found 4 MongoDB repository interfaces.
-2026-05-31T23:07:05.462-04:00  INFO 8408 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
-2026-05-31T23:07:05.486-04:00  INFO 8408 --- [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
-2026-05-31T23:07:05.486-04:00  INFO 8408 --- [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.33]
-2026-05-31T23:07:05.583-04:00  INFO 8408 --- [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
-2026-05-31T23:07:05.584-04:00  INFO 8408 --- [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2196 ms
-Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
-2026-05-31T23:07:05.925-04:00  INFO 8408 --- [           main] org.mongodb.driver.client                : MongoClient with metadata {"driver": {"name": "mongo-java-driver|sync|spring-boot", "version": "5.0.1"}, "os": {"type": "Windows", "name": "Windows 11", "architecture": "amd64", "version": "10.0"}, "platform": "Java/Microsoft/17.0.16+8-LTS"} created with settings MongoClientSettings{readPreference=primary, writeConcern=WriteConcern{w=null, wTimeout=null ms, journal=null}, retryWrites=true, retryReads=true, readConcern=ReadConcern{level=null}, credential=null, transportSettings=null, commandListeners=[io.micrometer.core.instrument.binder.mongodb.MongoMetricsCommandListener@1b7554d4], codecRegistry=ProvidersCodecRegistry{codecProviders=[ValueCodecProvider{}, BsonValueCodecProvider{}, DBRefCodecProvider{}, DBObjectCodecProvider{}, DocumentCodecProvider{}, CollectionCodecProvider{}, IterableCodecProvider{}, MapCodecProvider{}, GeoJsonCodecProvider{}, GridFSFileCodecProvider{}, Jsr310CodecProvider{}, JsonObjectCodecProvider{}, BsonCodecProvider{}, EnumCodecProvider{}, com.mongodb.client.model.mql.ExpressionCodecProvider@57ce2898, com.mongodb.Jep395RecordCodecProvider@1ea930eb, com.mongodb.KotlinCodecProvider@2e0ad709]}, loggerSettings=LoggerSettings{maxDocumentLength=1000}, clusterSettings={hosts=[localhost:27017], srvServiceName=mongodb, mode=SINGLE, requiredClusterType=UNKNOWN, requiredReplicaSetName='null', serverSelector='null', clusterListeners='[]', serverSelectionTimeout='30000 ms', localThreshold='15 ms'}, socketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=0, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, heartbeatSocketSettings=SocketSettings{connectTimeoutMS=10000, readTimeoutMS=10000, receiveBufferSize=0, proxySettings=ProxySettings{host=null, port=null, username=null, password=null}}, connectionPoolSettings=ConnectionPoolSettings{maxSize=100, minSize=0, maxWaitTimeMS=120000, maxConnectionLifeTimeMS=0, maxConnectionIdleTimeMS=0, maintenanceInitialDelayMS=0, maintenanceFrequencyMS=60000, connectionPoolListeners=[io.micrometer.core.instrument.binder.mongodb.MongoMetricsConnectionPoolListener@1fe8f5e8], maxConnecting=2}, serverSettings=ServerSettings{heartbeatFrequencyMS=10000, minHeartbeatFrequencyMS=500, serverListeners='[]', serverMonitorListeners='[]'}, sslSettings=SslSettings{enabled=false, invalidHostNameAllowed=false, context=null}, applicationName='null', compressorList=[], uuidRepresentation=JAVA_LEGACY, serverApi=null, autoEncryptionSettings=null, dnsClient=null, inetAddressResolver=null, contextProvider=null}
-2026-05-31T23:07:05.958-04:00  INFO 8408 --- [localhost:27017] org.mongodb.driver.cluster               : Monitor thread successfully connected to server with description ServerDescription{address=localhost:27017, type=STANDALONE, state=CONNECTED, ok=true, minWireVersion=0, maxWireVersion=27, maxDocumentSize=16777216, logicalSessionTimeoutMinutes=30, roundTripTimeNanos=23537100}
-2026-05-31T23:07:06.673-04:00  INFO 8408 --- [           main] com.workflow.config.FirebaseConfig       : Firebase Admin SDK inicializado correctamente
-2026-05-31T23:07:06.959-04:00  INFO 8408 --- [           main] eAuthenticationProviderManagerConfigurer : Global AuthenticationManager configured with AuthenticationProvider bean with name authenticationProvider
-2026-05-31T23:07:06.960-04:00  WARN 8408 --- [           main] r$InitializeUserDetailsManagerConfigurer : Global AuthenticationManager configured with an AuthenticationProvider bean. UserDetailsService beans will not be used for username/password login. Consider removing the AuthenticationProvider bean. Alternatively, consider using the UserDetailsService in a manually instantiated DaoAuthenticationProvider.
-2026-05-31T23:07:07.493-04:00  INFO 8408 --- [           main] o.s.b.a.e.web.EndpointLinksResolver      : Exposing 1 endpoint beneath base path '/actuator'
-2026-05-31T23:07:08.041-04:00  INFO 8408 --- [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
-2026-05-31T23:07:08.042-04:00  INFO 8408 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Starting...
-2026-05-31T23:07:08.043-04:00  INFO 8408 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : BrokerAvailabilityEvent[available=true, SimpleBrokerMessageHandler [org.springframework.messaging.simp.broker.DefaultSubscriptionRegistry@7057dbda]]
-2026-05-31T23:07:08.044-04:00  INFO 8408 --- [           main] o.s.m.s.b.SimpleBrokerMessageHandler     : Started.
-2026-05-31T23:07:08.060-04:00  INFO 8408 --- [           main] com.workflow.WorkflowApplication         : Started WorkflowApplication in 5.233 seconds (process running for 5.803)
-2026-05-31T23:07:08.272-04:00  INFO 8408 --- [           main] com.workflow.config.MongoWarmupRunner    : MongoDB connection warmed up successfully.
+#3 [auth] library/nginx:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#4 [internal] load metadata for docker.io/library/node:20-alpine
+#4 DONE 0.3s
+
+#5 [internal] load metadata for docker.io/library/nginx:alpine
+#5 DONE 0.3s
+
+#6 [internal] load .dockerignore
+#6 transferring context: 2B done
+#6 DONE 0.0s
+
+#7 [internal] load build context
+#7 transferring context: 616.84kB 0.0s done
+#7 DONE 0.0s
+
+#8 [stage-1 1/3] FROM docker.io/library/nginx:alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a
+#8 resolve docker.io/library/nginx:alpine@sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a done
+#8 extracting sha256:abaae85d1626e429b3f1209aea369c0af9562cc06b5e075c006e0f699bba35f2
+#8 extracting sha256:abaae85d1626e429b3f1209aea369c0af9562cc06b5e075c006e0f699bba35f2 0.1s done
+#8 sha256:abaae85d1626e429b3f1209aea369c0af9562cc06b5e075c006e0f699bba35f2 1.88MB / 1.88MB 0.1s done
+#8 sha256:43f834d60d8af3f133c7e76a202d28cd62cc026a561edca72ee752ef01bfaacd 628B / 628B 0.1s done
+#8 sha256:de1b677d8c003ce9e558f3a0cd4dec3c035f424ecddd68063043a593ad572257 957B / 957B 0.1s
+#8 sha256:94d083cf706ab544ec7e9bcaba5c164db87b3d3a56176bf2fca440d535c16b0d 0B / 405B 0.1s
+#8 sha256:da954fb959a34e2195e6bf622e6396bf338f99e0fe6d8e641b302d9aaa1f0645 12.41kB / 12.41kB done
+#8 sha256:31db9045b34376493fd4fb695d8a8d03bbfffaf6297fcde82d0f925ce2dd329a 2.50kB / 2.50kB done
+#8 sha256:8b1e78743a03dbb2c95171cc58639fef29abc8816598e27fb910ed2e621e589a 10.33kB / 10.33kB done
+#8 sha256:de1b677d8c003ce9e558f3a0cd4dec3c035f424ecddd68063043a593ad572257 957B / 957B 0.1s done
+#8 sha256:94d083cf706ab544ec7e9bcaba5c164db87b3d3a56176bf2fca440d535c16b0d 405B / 405B 0.1s done
+#8 sha256:e654dbbbb9e15a1fa035d24728aeeb60bc655f4ebd4d6215a496b77a7d104697 1.21kB / 1.21kB 0.1s done
+#8 sha256:a5008f4a4b257356728e2feaf2b5b9e2054c0c577d324e76abbf14470b5f1cfd 1.40kB / 1.40kB 0.1s done
+#8 sha256:fbaed3f7fcbe6a0d591ac8601934f1f05252cee42741fde9e950dce55580af18 20.28MB / 20.28MB 0.2s done
+#8 extracting sha256:43f834d60d8af3f133c7e76a202d28cd62cc026a561edca72ee752ef01bfaacd done
+#8 extracting sha256:de1b677d8c003ce9e558f3a0cd4dec3c035f424ecddd68063043a593ad572257 done
+#8 extracting sha256:94d083cf706ab544ec7e9bcaba5c164db87b3d3a56176bf2fca440d535c16b0d done
+#8 extracting sha256:e654dbbbb9e15a1fa035d24728aeeb60bc655f4ebd4d6215a496b77a7d104697 done
+#8 extracting sha256:a5008f4a4b257356728e2feaf2b5b9e2054c0c577d324e76abbf14470b5f1cfd done
+#8 extracting sha256:fbaed3f7fcbe6a0d591ac8601934f1f05252cee42741fde9e950dce55580af18
+#8 extracting sha256:fbaed3f7fcbe6a0d591ac8601934f1f05252cee42741fde9e950dce55580af18 0.5s done
+#8 DONE 1.0s
+
+#9 [build 1/7] FROM docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293
+#9 resolve docker.io/library/node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 done
+#9 sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 445B / 445B 0.1s done
+#9 sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 7.67kB / 7.67kB done
+#9 sha256:afdf98210b07b586eb71fa22ba2e432e058e4cd1304d31ed60888755b8c865fb 1.72kB / 1.72kB done
+#9 sha256:11cedc39e663e7c5d5cb9cc77a461a0d2adc25537b94e6831a6108f09cb2001b 6.52kB / 6.52kB done
+#9 sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 43.23MB / 43.23MB 0.2s done
+#9 sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 1.26MB / 1.26MB 0.0s done
+#9 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 0.8s
+#9 extracting sha256:4feea04c154301db6f4a496efa397b3db96603b1c009c797cfdde77bea8b3287 1.2s done
+#9 extracting sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122
+#9 extracting sha256:b2cbbfe903b0821005780971ddc5892edcc4ce74c5a48d82e1d2b382edac3122 0.0s done
+#9 extracting sha256:fff4e2c1b189bf87d63ad8bd07f7f4eb288d6f2b6a07a8bb44c60e8c075d2096 done
+#9 DONE 1.7s
+
+#10 [build 2/7] WORKDIR /app
+#10 DONE 0.0s
+
+#11 [build 3/7] COPY package*.json ./
+#11 DONE 0.0s
+
+#12 [build 4/7] RUN npm ci
+#12 8.076 
+#12 8.076 added 489 packages, and audited 490 packages in 8s
+#12 8.076 
+#12 8.076 112 packages are looking for funding
+#12 8.076   run `npm fund` for details
+#12 8.096 
+#12 8.096 7 vulnerabilities (6 moderate, 1 high)
+#12 8.096 
+#12 8.096 To address all issues, run:
+#12 8.096   npm audit fix
+#12 8.096 
+#12 8.096 Run `npm audit` for details.
+#12 8.099 npm notice
+#12 8.099 npm notice New major version of npm available! 10.8.2 -> 11.16.0
+#12 8.099 npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.16.0
+#12 8.099 npm notice To update run: npm install -g npm@11.16.0
+#12 8.099 npm notice
+#12 DONE 8.1s
+
+#13 [build 5/7] COPY . .
+#13 DONE 0.7s
+
+#14 [build 6/7] RUN mkdir -p src/environments &&     printf "export const environment = { production: false, apiUrl: '%s', wsUrl: '%s' };\n" "***" "***" > src/environments/environment.ts &&     printf "export const environment = { production: true, apiUrl: '%s', wsUrl: '%s' };\n" "***" "***" > src/environments/environment.prod.ts
+#14 DONE 0.1s
+
+#15 [build 7/7] RUN npm run build -- --configuration production
+#15 0.306 
+#15 0.306 > frontend@0.0.0 build
+#15 0.306 > ng build --configuration production
+#15 0.306 
+#15 1.119 ❯ Building...
+#15 12.89 ✔ Building...
+#15 12.89 Application bundle generation failed. [11.765 seconds] - 2026-06-01T06:53:52.851Z
+#15 12.89 
+#15 12.89 ✘ [ERROR] Could not resolve "../../../../environments/environment"
+#15 12.89 
+#15 12.89     src/app/shared/services/auth.service.ts:6:28:
+#15 12.89       6 │ import { environment } from '../../../../environments/environment';
+#15 12.89         ╵                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#15 12.89 
+#15 12.89 
+#15 12.89 ✘ [ERROR] TS2307: Cannot find module '../../../../environments/environment' or its corresponding type declarations. [plugin angular-compiler]
+#15 12.89 
+#15 12.89     src/app/shared/services/auth.service.ts:6:28:
+#15 12.89       6 │ import { environment } from '../../../../environments/environment';
+#15 12.89         ╵                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#15 12.89 
+#15 12.89 
+#15 12.89 ✘ [ERROR] Could not resolve "../../../../environments/environment"
+#15 12.89 
+#15 12.89     src/app/shared/services/chatbot.service.ts:5:28:
+#15 12.89       5 │ import { environment } from '../../../../environments/environment';
+#15 12.89         ╵                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#15 12.89 
+#15 12.89 
+#15 12.89 ✘ [ERROR] TS2307: Cannot find module '../../../../environments/environment' or its corresponding type declarations. [plugin angular-compiler]
+#15 12.89 
+#15 12.89     src/app/shared/services/chatbot.service.ts:5:28:
+#15 12.89       5 │ import { environment } from '../../../../environments/environment';
+#15 12.89         ╵                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#15 12.89 
+#15 12.89 
+#15 12.89 ✘ [ERROR] Could not resolve "../../../../environments/environment"
+#15 12.89 
+#15 12.89     src/app/shared/services/consulta.service.ts:5:28:
+#15 12.89       5 │ import { environment } from '../../../../environments/environment';
+#15 12.89         ╵                             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+#15 12.89 
+#15 12.89 

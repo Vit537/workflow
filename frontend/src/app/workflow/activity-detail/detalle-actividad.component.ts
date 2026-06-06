@@ -5,6 +5,7 @@ import { MatSnackBar } from '@angular/material/snack-bar';
 import { finalize } from 'rxjs/operators';
 import { TramiteService, RespuestaTramite, RespuestaPaso, EstadoPaso } from '../../shared/services/tramite.service';
 import { PoliticaService } from '../../shared/services/politica.service';
+import { DocumentoService } from '../../shared/services/documento.service';
 import { Nodo, Formulario, CampoFormulario } from '../../shared/models/policy.model';
 
 @Component({
@@ -41,6 +42,7 @@ export class DetalleActividadComponent implements OnInit {
     private fb: FormBuilder,
     private tramiteService: TramiteService,
     private politicaService: PoliticaService,
+    private documentoService: DocumentoService,
     private snackBar: MatSnackBar
   ) {}
 
@@ -127,7 +129,21 @@ export class DetalleActividadComponent implements OnInit {
       .map(([campo, valor]) => ({ campo, valor: String(valor) }));
   }
 
-  esArchivo(valor: unknown): boolean {
+  /** ¿El campo está definido como ARCHIVO? Su valor es un documentoId del sistema documental. */
+  esCampoArchivo(nombreCampo: string): boolean {
+    return this.campos.some(c => c.nombre === nombreCampo && c.tipoCampo === 'ARCHIVO');
+  }
+
+  /** Descarga el documento (versión actual) que subió el cliente para este campo. */
+  descargarDocumento(documentoId: string): void {
+    this.documentoService.descargarActual(documentoId).subscribe({
+      next: (resp) => this.documentoService.guardarBlob(resp, 'documento'),
+      error: () => this.snackBar.open('No se pudo descargar el documento.', 'Cerrar', { duration: 3000 }),
+    });
+  }
+
+  /** Compatibilidad con rutas antiguas ("uploads/..."). */
+  esArchivoLegacy(valor: unknown): boolean {
     return typeof valor === 'string' && (valor as string).startsWith('uploads/');
   }
 

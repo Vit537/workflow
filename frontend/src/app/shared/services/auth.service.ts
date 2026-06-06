@@ -1,9 +1,9 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { BehaviorSubject, Observable, tap } from 'rxjs';
 import { jwtDecode } from 'jwt-decode';
 import { RespuestaAuth, Usuario } from '../models/user.model';
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -17,18 +17,27 @@ export class AuthService {
 
   iniciarSesion(correo: string, contrasena: string): Observable<RespuestaAuth> {
     return this.http.post<RespuestaAuth>(`${this.urlApi}/login`, { correo, contrasena }).pipe(
-      tap(respuesta => {
-        localStorage.setItem(this.CLAVE_TOKEN, respuesta.token);
-        const usuario: Usuario = {
-          id: respuesta.id,
-          nombre: respuesta.nombre,
-          correo: respuesta.correo,
-          rol: respuesta.rol,
-          activo: true,
-        };
-        this.usuarioActualSubject.next(usuario);
-      })
+      tap(respuesta => this.guardarSesion(respuesta))
     );
+  }
+
+  /** Registro de un cliente (rol CLIENTE). Inicia sesión automáticamente. */
+  registrarCliente(datos: { nombre: string; correo: string; contrasena: string; telefono?: string }):
+      Observable<RespuestaAuth> {
+    return this.http.post<RespuestaAuth>(`${this.urlApi}/registro`, datos).pipe(
+      tap(respuesta => this.guardarSesion(respuesta))
+    );
+  }
+
+  private guardarSesion(respuesta: RespuestaAuth): void {
+    localStorage.setItem(this.CLAVE_TOKEN, respuesta.token);
+    this.usuarioActualSubject.next({
+      id: respuesta.id,
+      nombre: respuesta.nombre,
+      correo: respuesta.correo,
+      rol: respuesta.rol,
+      activo: true,
+    });
   }
 
   cerrarSesion(): void {
@@ -61,7 +70,7 @@ export class AuthService {
     return this.usuarioActualSubject.value;
   }
 
-  obtenerRol(): 'ADMIN' | 'ASESOR' | null {
+  obtenerRol(): 'ADMIN' | 'ASESOR' | 'CLIENTE' | null {
     return this.obtenerUsuarioActual()?.rol ?? null;
   }
 

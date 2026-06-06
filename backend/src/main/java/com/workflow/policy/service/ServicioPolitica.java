@@ -1,11 +1,15 @@
 package com.workflow.policy.service;
 
+import com.workflow.document.model.Responsable;
+import com.workflow.iam.model.User;
+import com.workflow.iam.repository.UserRepository;
 import com.workflow.policy.dto.PoliticaResumenProjection;
 import com.workflow.policy.dto.RespuestaPolitica;
 import com.workflow.policy.dto.RespuestaPoliticaResumen;
 import com.workflow.policy.dto.SolicitudActualizarDiagrama;
 import com.workflow.policy.dto.SolicitudActualizarPolitica;
 import com.workflow.policy.dto.SolicitudCrearPolitica;
+import com.workflow.policy.dto.SolicitudResponsable;
 import com.workflow.policy.model.EstadoPolitica;
 import com.workflow.policy.model.Politica;
 import com.workflow.policy.repository.PoliticaRepository;
@@ -20,6 +24,7 @@ import java.util.stream.Collectors;
 public class ServicioPolitica {
 
   private final PoliticaRepository politicaRepository;
+  private final UserRepository userRepository;
 
   public List<RespuestaPoliticaResumen> listarPoliticas() {
     return politicaRepository.findAllResumen()
@@ -161,8 +166,48 @@ public class ServicioPolitica {
         .carriles(politica.getCarriles())
         .nodos(politica.getNodos())
         .conexiones(politica.getConexiones())
+        .responsables(politica.getResponsables())
         .creadoEn(politica.getCreadoEn())
         .actualizadoEn(politica.getActualizadoEn())
         .build();
+  }
+
+  // ── Responsables del repositorio documental ───────────────────────────────
+
+  public List<Responsable> listarResponsables(String politicaId) {
+    return buscarPorId(politicaId).getResponsables();
+  }
+
+  public List<Responsable> agregarResponsable(String politicaId, SolicitudResponsable solicitud) {
+    Politica politica = buscarPorId(politicaId);
+    User usuario = userRepository.findByCorreo(solicitud.getCorreo())
+        .orElseThrow(() -> new RuntimeException(
+            "No existe un usuario con el correo: " + solicitud.getCorreo()));
+
+    if (politica.getResponsables() == null) {
+      politica.setResponsables(new java.util.ArrayList<>());
+    }
+    // Si ya es responsable, actualizar su rol; si no, agregarlo.
+    politica.getResponsables().stream()
+        .filter(r -> usuario.getId().equals(r.getUsuarioId()))
+        .findFirst()
+        .ifPresentOrElse(
+            r -> r.setRolDocumental(solicitud.getRolDocumental()),
+            () -> politica.getResponsables().add(Responsable.builder()
+                .usuarioId(usuario.getId())
+                .correo(usuario.getCorreo())
+                .nombre(usuario.getNombre())
+                .rolDocumental(solicitud.getRolDocumental())
+                .build()));
+
+    return politicaRepository.save(politica).getResponsables();
+  }
+
+  public List<Responsable> eliminarResponsable(String politicaId, String usuarioId) {
+    Politica politica = buscarPorId(politicaId);
+    if (politica.getResponsables() != null) {
+      politica.getResponsables().removeIf(r -> usuarioId.equals(r.getUsuarioId()));
+    }
+    return politicaRepository.save(politica).getResponsables();
   }
 }

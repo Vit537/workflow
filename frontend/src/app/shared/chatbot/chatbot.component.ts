@@ -5,7 +5,9 @@ import {
   OnInit,
   ViewChild,
 } from '@angular/core';
+import { NavigationEnd, Router } from '@angular/router';
 import { Subscription } from 'rxjs';
+import { filter } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { ChatbotService, MensajeChat } from '../services/chatbot.service';
 import { Usuario } from '../models/user.model';
@@ -25,11 +27,16 @@ export class ChatbotComponent implements OnInit, OnDestroy {
   historial: MensajeChat[] = [];
   usuario: Usuario | null = null;
 
+  /** El asistente es solo para el back-office; nunca debe verse en el portal del cliente. */
+  enRutaCliente = false;
+
   private sub!: Subscription;
+  private subRuta!: Subscription;
 
   constructor(
     private authService: AuthService,
     private chatbotService: ChatbotService,
+    private router: Router,
   ) {}
 
   ngOnInit(): void {
@@ -41,14 +48,30 @@ export class ChatbotComponent implements OnInit, OnDestroy {
         this.abierto = false;
       }
     });
+
+    // Ocultar el asistente cuando se navega dentro del portal del cliente (/cliente/*).
+    this.enRutaCliente = this.esRutaCliente(this.router.url);
+    this.subRuta = this.router.events
+      .pipe(filter((e): e is NavigationEnd => e instanceof NavigationEnd))
+      .subscribe(e => {
+        this.enRutaCliente = this.esRutaCliente(e.urlAfterRedirects);
+        if (this.enRutaCliente) this.abierto = false;
+      });
   }
 
   ngOnDestroy(): void {
     this.sub?.unsubscribe();
+    this.subRuta?.unsubscribe();
+  }
+
+  private esRutaCliente(url: string): boolean {
+    return url.startsWith('/cliente');
   }
 
   get visible(): boolean {
-    return !!this.usuario && (this.usuario.rol === 'ADMIN' || this.usuario.rol === 'ASESOR');
+    return !this.enRutaCliente
+      && !!this.usuario
+      && (this.usuario.rol === 'ADMIN' || this.usuario.rol === 'ASESOR');
   }
 
   toggle(): void {

@@ -1,10 +1,12 @@
 package com.workflow.policy.controller;
 
+import com.workflow.document.model.Responsable;
 import com.workflow.policy.dto.RespuestaPolitica;
 import com.workflow.policy.dto.RespuestaPoliticaResumen;
 import com.workflow.policy.dto.SolicitudActualizarDiagrama;
 import com.workflow.policy.dto.SolicitudActualizarPolitica;
 import com.workflow.policy.dto.SolicitudCrearPolitica;
+import com.workflow.policy.dto.SolicitudResponsable;
 import com.workflow.policy.model.EstadoPolitica;
 import com.workflow.policy.service.ServicioPolitica;
 import jakarta.validation.Valid;
@@ -86,5 +88,29 @@ public class ControladorPolitica {
   public ResponseEntity<List<RespuestaPolitica>> buscarPoliticas(
       @RequestParam(required = false) String q) {
     return ResponseEntity.ok(servicioPolitica.buscarPoliticasPublicadas(q));
+  }
+
+  // ── Responsables del repositorio documental ───────────────────────────────
+
+  @GetMapping("/{id}/responsables")
+  @PreAuthorize("hasAnyRole('ADMIN', 'ASESOR')")
+  public ResponseEntity<List<Responsable>> listarResponsables(@PathVariable String id) {
+    return ResponseEntity.ok(servicioPolitica.listarResponsables(id));
+  }
+
+  @PostMapping("/{id}/responsables")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<List<Responsable>> agregarResponsable(
+      @PathVariable String id,
+      @Valid @RequestBody SolicitudResponsable solicitud) {
+    return ResponseEntity.ok(servicioPolitica.agregarResponsable(id, solicitud));
+  }
+
+  @DeleteMapping("/{id}/responsables/{usuarioId}")
+  @PreAuthorize("hasRole('ADMIN')")
+  public ResponseEntity<List<Responsable>> eliminarResponsable(
+      @PathVariable String id,
+      @PathVariable String usuarioId) {
+    return ResponseEntity.ok(servicioPolitica.eliminarResponsable(id, usuarioId));
   }
 }

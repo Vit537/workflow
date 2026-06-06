@@ -1,3 +1,7 @@
+<div class="modal-backdrop" (click)="cerrado.emit()"></div>
+
+<div class="modal-card" (click)="$event.stopPropagation()">
+
 <div class="prop-header">
   <h3>{{ nodo?.etiqueta }}</h3>
   <button mat-icon-button (click)="cerrado.emit()" matTooltip="Cerrar"><mat-icon>close</mat-icon></button>
@@ -107,6 +111,19 @@
           Guardar encabezado
         </button>
 
+        <!-- Gestión documental: switch requiere documentos -->
+        <div class="bloque-documentos">
+          <mat-slide-toggle
+            [checked]="requiereDocumentos"
+            (change)="alternarRequiereDocumentos($event.checked)">
+            <span class="toggle-doc-titulo">Esta actividad requiere documentos</span>
+          </mat-slide-toggle>
+          <p class="toggle-doc-desc">
+            <mat-icon>folder_shared</mat-icon>
+            Si se activa, el cliente verá una sección para subir archivos en esta actividad.
+          </p>
+        </div>
+
         <!-- Requisitos -->
         <mat-divider class="divider"></mat-divider>
         <p class="campo-label">Requisitos del cliente</p>
@@ -183,3 +200,5 @@
     </div>
   </mat-tab>
 </mat-tab-group>
+
+</div><!-- fin modal-card -->

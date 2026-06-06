@@ -1,16 +1,16 @@
-import { Injectable, OnDestroy } from '@angular/core';
+﻿import { Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Client, IMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { Subject, Observable } from 'rxjs';
 import { AuthService } from './auth.service';
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class WebsocketService implements OnDestroy {
   private cliente!: Client;
   private conectado = false;
 
-  constructor(private authService: AuthService) {}
+  constructor(private authService: AuthService, private zone: NgZone) {}
 
   conectar(): void {
     if (this.conectado) return;
@@ -39,16 +39,21 @@ export class WebsocketService implements OnDestroy {
 
   suscribir<T>(destino: string): Observable<T> {
     const subject = new Subject<T>();
-    const esperarConexion = () => {
-      if (this.cliente?.connected) {
-        this.cliente.subscribe(destino, (msg: IMessage) => {
-          subject.next(JSON.parse(msg.body) as T);
-        });
-      } else {
-        setTimeout(esperarConexion, 200);
-      }
-    };
-    esperarConexion();
+    // Run the polling loop outside Angular's zone so the 200ms timer
+    // doesn't trigger unnecessary change-detection cycles.
+    this.zone.runOutsideAngular(() => {
+      const esperarConexion = () => {
+        if (this.cliente?.connected) {
+          this.cliente.subscribe(destino, (msg: IMessage) => {
+            // Re-enter the zone when emitting so subscribers see the update.
+            this.zone.run(() => subject.next(JSON.parse(msg.body) as T));
+          });
+        } else {
+          setTimeout(esperarConexion, 200);
+        }
+      };
+      esperarConexion();
+    });
     return subject.asObservable();
   }
 

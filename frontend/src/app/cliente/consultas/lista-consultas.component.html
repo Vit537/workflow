@@ -1,0 +1,42 @@
+<div class="cabecera">
+  <h1>Mis consultas</h1>
+  <button mat-raised-button color="primary" (click)="mostrarForm = !mostrarForm">
+    <mat-icon>add</mat-icon> Nueva consulta
+  </button>
+</div>
+
+<!-- Formulario nueva consulta -->
+<mat-card class="form-nueva" *ngIf="mostrarForm">
+  <mat-form-field appearance="outline" class="full">
+    <mat-label>¿En qué te podemos ayudar?</mat-label>
+    <textarea matInput rows="3" [(ngModel)]="descripcion"
+      placeholder="Describe tu consulta o el trámite que necesitas..."></textarea>
+  </mat-form-field>
+  <div class="acciones">
+    <button mat-button (click)="mostrarForm = false">Cancelar</button>
+    <button mat-raised-button color="primary" (click)="crear()" [disabled]="enviando || !descripcion.trim()">
+      <mat-spinner *ngIf="enviando" diameter="18"></mat-spinner>
+      <span *ngIf="!enviando">Enviar consulta</span>
+    </button>
+  </div>
+</mat-card>
+
+<div *ngIf="cargando" class="centrado"><mat-spinner diameter="34"></mat-spinner></div>
+
+<p *ngIf="!cargando && consultas.length === 0" class="vacio">
+  <mat-icon>inbox</mat-icon>
+  Todavía no tienes consultas. Crea una con el botón «Nueva consulta».
+</p>
+
+<mat-card *ngFor="let c of consultas" class="consulta-card" (click)="abrir(c)">
+  <div class="consulta-top">
+    <span class="estado" [ngClass]="colorEstado(c.estado)">{{ textoEstado(c.estado) }}</span>
+    <span class="fecha">{{ c.creadaEn | date:'short' }}</span>
+  </div>
+  <p class="descripcion">{{ c.descripcion }}</p>
+  <div class="consulta-foot">
+    <span *ngIf="c.tramiteId" class="con-tramite"><mat-icon>account_tree</mat-icon> Trámite en curso</span>
+    <span *ngIf="!c.tramiteId" class="sin-tramite">Esperando al asesor</span>
+    <mat-icon class="ir">chevron_right</mat-icon>
+  </div>
+</mat-card>

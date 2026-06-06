@@ -29,6 +29,10 @@ export class ListaConsultasComponent implements OnInit {
     private router: Router,
   ) {}
 
+  /** Conversaciones activas: consultas en atención (sección "Chats"). */
+  chats$!: Observable<Consulta[]>;
+  private recargarChats$ = new BehaviorSubject<void>(undefined);
+
   ngOnInit(): void {
     this.consultas$ = this.filtro$.pipe(
       switchMap((estado) =>
@@ -40,6 +44,21 @@ export class ListaConsultasComponent implements OnInit {
         )
       )
     );
+
+    this.chats$ = this.recargarChats$.pipe(
+      switchMap(() =>
+        this.consultaService.listar('EN_ATENCION').pipe(catchError(() => of([])))
+      )
+    );
+  }
+
+  recargarChats(): void {
+    this.recargarChats$.next();
+  }
+
+  /** Abre el detalle directamente en la pestaña de chat. */
+  verChat(id: string, consulta: Consulta): void {
+    this.router.navigate(['/workflow/consultas', id], { state: { consulta, tab: 'chat' } });
   }
 
   cargar(): void {

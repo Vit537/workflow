@@ -15,6 +15,12 @@ export interface Formulario {
   instrucciones: string;
   requisitos: string[];
   campos: CampoFormulario[];
+  /** Switch del admin: indica si esta actividad requiere que el cliente suba documentos. */
+  requiereDocumentos?: boolean;
+  /** Extensiones permitidas (ej. ['pdf','docx']). Vacío = cualquier formato. */
+  tiposPermitidos?: string[];
+  /** Máximo de archivos que puede subir el cliente. */
+  maxArchivos?: number;
 }
 
 export interface Carril {

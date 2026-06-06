@@ -1,0 +1,32 @@
+.cliente-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  gap: 6px;
+
+  .logo-icon { margin-right: 8px; }
+  .titulo { font-size: 18px; font-weight: 600; }
+  .spacer { flex: 1; }
+
+  a[mat-button] {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    &.activo { background: rgba(255, 255, 255, 0.18); border-radius: 6px; }
+  }
+
+  .usuario {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0 8px;
+    font-size: 14px;
+    opacity: 0.95;
+  }
+}
+
+.cliente-contenido {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 20px 16px 40px;
+}

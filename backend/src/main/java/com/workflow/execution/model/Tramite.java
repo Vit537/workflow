@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.Instant;
@@ -22,13 +23,18 @@ public class Tramite {
   @Id
   private String id;
 
+  @Indexed
   private String politicaId;
   private String nombrePolitica;
+  @Indexed
   private String iniciadoPor;
 
   /** Consulta del cliente vinculada a este trámite (opcional) */
+  @Indexed
   private String consultaId;
 
+  /** Índice clave: los listados del monitor filtran por estado. */
+  @Indexed
   private EstadoTramite estado;
 
   @Builder.Default

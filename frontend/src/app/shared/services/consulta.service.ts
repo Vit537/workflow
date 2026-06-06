@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { Consulta, EstadoConsulta } from '../models/consulta.model';
+import { MensajeConsulta } from '../models/cliente.model';
 
 export interface RespuestaVerificacion {
   consultaId: string;
@@ -14,7 +15,7 @@ export interface RespuestaVerificacion {
   tramite?: { estado: string; [key: string]: unknown };
 }
 
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../environments/environment';
 const API = `${environment.apiUrl}/api/consultas`;
 
 @Injectable({ providedIn: 'root' })
@@ -44,5 +45,14 @@ export class ConsultaService {
     let params = new HttpParams().set('correo', correo);
     if (descripcion) params = params.set('descripcion', descripcion);
     return this.http.get<RespuestaVerificacion>(`${API}/verificar`, { params });
+  }
+
+  // ── Mensajería con el cliente (chat) ─────────────────────────────────────
+  mensajes(consultaId: string): Observable<MensajeConsulta[]> {
+    return this.http.get<MensajeConsulta[]>(`${API}/${consultaId}/mensajes`);
+  }
+
+  enviarMensaje(consultaId: string, texto: string): Observable<MensajeConsulta> {
+    return this.http.post<MensajeConsulta>(`${API}/${consultaId}/mensajes`, { texto });
   }
 }

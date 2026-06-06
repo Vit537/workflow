@@ -31,6 +31,9 @@ public class User implements UserDetails {
 
   private String contrasena;
 
+  /** Teléfono de contacto (usado sobre todo por clientes). */
+  private String telefono;
+
   private Rol rol;
 
   private boolean activo;

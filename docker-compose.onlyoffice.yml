@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# OnlyOffice Document Server — para co-edición en vivo de documentos del DMS.
+#
+# Uso (desarrollo local):
+#   docker compose -f docker-compose.onlyoffice.yml up -d
+#
+# El servidor queda en http://localhost:8082 (el navegador carga el editor desde ahí).
+# El contenedor alcanza el backend del host por host.docker.internal:8080
+# (configurado en application.properties → app.onlyoffice.backend-base-url).
+#
+# IMPORTANTE: JWT_SECRET debe coincidir con app.onlyoffice.jwt-secret del backend.
+# ─────────────────────────────────────────────────────────────────────────────
+services:
+  onlyoffice:
+    image: onlyoffice/documentserver:latest
+    container_name: workflow-onlyoffice
+    ports:
+      - "8082:80"
+    environment:
+      # Firma/verificación JWT entre OnlyOffice y el backend.
+      - JWT_ENABLED=true
+      - JWT_SECRET=${ONLYOFFICE_JWT_SECRET:-un-secreto-compartido-con-el-contenedor}
+      - JWT_HEADER=Authorization
+    extra_hosts:
+      # Necesario en Linux para que el contenedor llegue al host;
+      # en Docker Desktop (Windows/Mac) host.docker.internal ya existe.
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - onlyoffice_data:/var/www/onlyoffice/Data
+      - onlyoffice_logs:/var/log/onlyoffice
+    restart: unless-stopped
+
+volumes:
+  onlyoffice_data:
+  onlyoffice_logs:

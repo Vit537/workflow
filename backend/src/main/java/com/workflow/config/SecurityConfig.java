@@ -4,7 +4,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -50,14 +49,12 @@ public class SecurityConfig {
         .authorizeHttpRequests(auth -> auth
             .requestMatchers("/api/auth/**").permitAll()
             .requestMatchers("/ws/**").permitAll()
-            // Endpoints públicos para clientes Flutter (sin JWT)
-            .requestMatchers(HttpMethod.POST, "/api/consultas").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/consultas/*/fcm-token").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/consultas/*/estado").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/consultas/*/paso-actual").permitAll()
-            // El cliente envía datos de formulario y archivos sin JWT
-            .requestMatchers(HttpMethod.POST, "/api/tramites/*/pasos/*/datos-cliente").permitAll()
-            .requestMatchers(HttpMethod.POST, "/api/tramites/*/pasos/*/archivos").permitAll()
+            // OnlyOffice Document Server consume estas rutas sin el JWT de la app:
+            // se protegen con el token corto ?oo= y (en el callback) el JWT de OnlyOffice.
+            .requestMatchers("/api/documentos/*/onlyoffice/contenido").permitAll()
+            .requestMatchers("/api/documentos/*/onlyoffice/callback").permitAll()
+            // El cliente autenticado (CLIENTE) crea/consulta sus consultas y sube archivos.
+            // Registro/login son públicos vía /api/auth/**.
             .anyRequest().authenticated())
         .exceptionHandling(ex -> ex
             .authenticationEntryPoint((request, response, authException) -> {

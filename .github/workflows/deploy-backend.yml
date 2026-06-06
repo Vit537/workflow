@@ -3,7 +3,7 @@ name: Deploy Backend & AI Service
 on:
   push:
     branches:
-      - ciclo-4
+      - ft-ciclo4-new
     paths:
       - 'backend/**'
       - 'ai-service/**'
@@ -13,6 +13,7 @@ on:
 env:
   AWS_REGION: ${{ secrets.AWS_REGION }}
   ECR_REGISTRY: ${{ secrets.ECR_REGISTRY }}
+  BACKEND_TASK_DEF: workflow-backend-td   # nombre de la Task Definition en ECS
 
 jobs:
   deploy-ai-service:
@@ -81,11 +82,63 @@ jobs:
           docker push $ECR_REGISTRY/workflow/backend:latest
 
       - name: Deploy backend to ECS
+        env:
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          ONLYOFFICE_PUBLIC_URL: ${{ secrets.ONLYOFFICE_PUBLIC_URL }}
+          ONLYOFFICE_BACKEND_URL: ${{ secrets.ONLYOFFICE_BACKEND_URL }}
+          ONLYOFFICE_JWT_SECRET: ${{ secrets.ONLYOFFICE_JWT_SECRET }}
+          CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
         run: |
+          # 1) Obtener task definition actual y limpiar campos no registrables
+          TASK_DEF=$(aws ecs describe-task-definition \
+            --task-definition $BACKEND_TASK_DEF \
+            --query "taskDefinition" \
+            --output json | \
+            jq 'del(.taskDefinitionArn,.revision,.status,.requiresAttributes,.placementConstraints,.compatibilities,.registeredAt,.registeredBy)')
+
+          # 2) Inyectar / actualizar variables de entorno en el contenedor
+          UPDATED=$(echo "$TASK_DEF" | jq \
+            --arg img "$ECR_REGISTRY/workflow/backend:${{ github.sha }}" \
+            --arg s3bucket  "$S3_BUCKET" \
+            --arg oo_pub    "$ONLYOFFICE_PUBLIC_URL" \
+            --arg oo_back   "$ONLYOFFICE_BACKEND_URL" \
+            --arg oo_secret "$ONLYOFFICE_JWT_SECRET" \
+            --arg cors      "$CORS_ORIGINS" \
+            '
+            .containerDefinitions[0].image = $img |
+            .containerDefinitions[0].environment = (
+              (.containerDefinitions[0].environment // []) |
+              map(select(.name | IN(
+                "STORAGE_TYPE","S3_BUCKET","S3_REGION",
+                "ONLYOFFICE_ENABLED","ONLYOFFICE_PUBLIC_URL",
+                "ONLYOFFICE_BACKEND_URL","ONLYOFFICE_JWT_SECRET",
+                "CORS_ORIGINS"
+              ) | not)) +
+              [
+                {"name":"STORAGE_TYPE",            "value":"s3"},
+                {"name":"S3_BUCKET",               "value":$s3bucket},
+                {"name":"S3_REGION",               "value":"sa-east-1"},
+                {"name":"ONLYOFFICE_ENABLED",       "value":"true"},
+                {"name":"ONLYOFFICE_PUBLIC_URL",    "value":$oo_pub},
+                {"name":"ONLYOFFICE_BACKEND_URL",   "value":$oo_back},
+                {"name":"ONLYOFFICE_JWT_SECRET",    "value":$oo_secret},
+                {"name":"CORS_ORIGINS",             "value":$cors}
+              ]
+            )')
+
+          # 3) Registrar nueva revisión
+          NEW_REVISION=$(echo "$UPDATED" | aws ecs register-task-definition \
+            --cli-input-json file:///dev/stdin \
+            --query "taskDefinition.taskDefinitionArn" \
+            --output text)
+
+          echo "Nueva task definition: $NEW_REVISION"
+
+          # 4) Actualizar el servicio con la nueva revisión
           aws ecs update-service \
             --cluster workflow-cluster \
             --service workflow-backend-service-8xmfry08 \
-            --force-new-deployment \
+            --task-definition "$NEW_REVISION" \
             --region $AWS_REGION
 
       - name: Summary

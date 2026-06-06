@@ -1,0 +1,46 @@
+<div class="auth-wrapper">
+  <mat-card class="auth-card">
+    <div class="auth-header">
+      <mat-icon>person_add</mat-icon>
+      <h2>Crear cuenta</h2>
+      <p>Regístrate para enviar y seguir tus consultas</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="registrar()">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Nombre completo</mat-label>
+        <input matInput formControlName="nombre">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Correo</mat-label>
+        <input matInput type="email" formControlName="correo">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Teléfono (opcional)</mat-label>
+        <input matInput formControlName="telefono">
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Contraseña</mat-label>
+        <input matInput [type]="ocultar ? 'password' : 'text'" formControlName="contrasena">
+        <button mat-icon-button matSuffix type="button" (click)="ocultar = !ocultar">
+          <mat-icon>{{ ocultar ? 'visibility' : 'visibility_off' }}</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <p *ngIf="error" class="auth-error">{{ error }}</p>
+
+      <button mat-raised-button color="primary" class="full" type="submit"
+        [disabled]="form.invalid || cargando">
+        <mat-spinner *ngIf="cargando" diameter="18"></mat-spinner>
+        <span *ngIf="!cargando">Crear cuenta</span>
+      </button>
+
+      <p class="auth-link">¿Ya tienes cuenta?
+        <a routerLink="/cliente/login">Inicia sesión</a>
+      </p>
+    </form>
+  </mat-card>
+</div>

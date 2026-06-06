@@ -1,8 +1,37 @@
 import { Injectable } from '@angular/core';
-import { Graph, InternalEvent, Cell, UndoManager, RubberBandHandler, PanningHandler } from '@maxgraph/core';
-import type { CellStyle } from '@maxgraph/core';
+import { Graph, InternalEvent, Cell, UndoManager, RubberBandHandler, PanningHandler, ShapeRegistry, EllipseShape } from '@maxgraph/core';
+import type { CellStyle, AbstractCanvas2D } from '@maxgraph/core';
 import { TipoNodo } from '../../shared/models/policy.model';
 import { GrafoEstadoService } from './grafo-estado.service';
+
+/**
+ * Nodo FINAL de actividad UML 2.5: anillo exterior con un punto negro relleno en el centro (◉).
+ * Se dibuja extendiendo la elipse: primero el círculo exterior (borde + relleno blanco),
+ * luego un círculo interior negro sólido.
+ */
+class FinalActivityShape extends EllipseShape {
+  override paintVertexShape(c: AbstractCanvas2D, x: number, y: number, w: number, h: number): void {
+    // Anillo exterior
+    c.ellipse(x, y, w, h);
+    c.fillAndStroke();
+    // Punto negro interior
+    const inset = Math.min(w, h) * 0.28;
+    c.setFillColor('#000000');
+    c.ellipse(x + inset, y + inset, w - 2 * inset, h - 2 * inset);
+    c.fill();
+  }
+}
+
+/** Nombre con el que registramos el shape custom del nodo FIN en maxGraph. */
+const SHAPE_FINAL_ACTIVITY = 'finalActivity';
+let shapesUmlRegistrados = false;
+
+/** Registra (una sola vez) los shapes UML personalizados en el ShapeRegistry global. */
+function registrarShapesUml(): void {
+  if (shapesUmlRegistrados) return;
+  ShapeRegistry.add(SHAPE_FINAL_ACTIVITY, FinalActivityShape);
+  shapesUmlRegistrados = true;
+}
 
 /**
  * Responsable de inicializar el grafo maxGraph, cargarlo desde datos existentes
@@ -38,6 +67,7 @@ export class GrafoRenderService {
   }
 
   inicializar(container: HTMLDivElement): void {
+    registrarShapesUml();
     InternalEvent.disableContextMenu(container);
     this.containerEl = container;
 
@@ -56,6 +86,11 @@ export class GrafoRenderService {
     const edgeStyle = grafo.getStylesheet().getDefaultEdgeStyle();
     edgeStyle.edgeStyle = 'orthogonalEdgeStyle';
     edgeStyle.rounded = true;
+    // UML 2.5: punta de flecha abierta (→) sin relleno
+    edgeStyle.endArrow = 'open';
+    edgeStyle.endFill = false;
+    edgeStyle.strokeColor = '#1f2933';
+    edgeStyle.fontSize = 11;
     edgeStyle.exitX = undefined;
     edgeStyle.exitY = undefined;
     edgeStyle.entryX = undefined;
@@ -296,20 +331,72 @@ export class GrafoRenderService {
   // ── Utilidades de estilo ──────────────────────────────────────────────
 
   estiloParaTipo(tipo: TipoNodo): CellStyle {
+    // Etiqueta debajo del nodo (para nodos de control pequeños: inicio, fin, barras fork/join)
+    const etiquetaAbajo: CellStyle = {
+      verticalLabelPosition: 'bottom',
+      verticalAlign: 'top',
+      fontColor: '#1f2933',
+      fontSize: 12,
+    };
+
     const estilos: Record<TipoNodo, CellStyle> = {
-      INICIO:             { shape: 'ellipse',  fillColor: '#d5e8d4', strokeColor: '#82b366' },
-      FIN:                { shape: 'ellipse',  fillColor: '#f8cecc', strokeColor: '#b85450' },
-      ACTIVIDAD:          { rounded: true,     fillColor: '#dae8fc', strokeColor: '#6c8ebf' },
-      DECISION:           { shape: 'rhombus',  fillColor: '#fff2cc', strokeColor: '#d6b656' },
-      COMPUERTA_PARALELA: { shape: 'ellipse',  fillColor: '#e1d5e7', strokeColor: '#9673a6' },
-      COMPUERTA_UNION:    { shape: 'ellipse',  fillColor: '#f0a30a', strokeColor: '#BD7000' },
+      // ● Nodo inicial UML: círculo negro sólido
+      INICIO: {
+        shape: 'ellipse',
+        fillColor: '#000000',
+        strokeColor: '#000000',
+        ...etiquetaAbajo,
+      },
+      // ◉ Nodo final de actividad UML: anillo exterior + punto negro (shape custom)
+      FIN: {
+        shape: SHAPE_FINAL_ACTIVITY,
+        fillColor: '#ffffff',
+        strokeColor: '#000000',
+        strokeWidth: 1.5,
+        ...etiquetaAbajo,
+      },
+      // ▭ Acción/Actividad UML: rectángulo redondeado, fondo claro
+      ACTIVIDAD: {
+        rounded: true,
+        arcSize: 18,
+        fillColor: '#ffffff',
+        strokeColor: '#1f2933',
+        fontColor: '#1f2933',
+        fontSize: 12,
+      },
+      // ◇ Decisión/Merge UML: rombo blanco con borde negro
+      DECISION: {
+        shape: 'rhombus',
+        fillColor: '#ffffff',
+        strokeColor: '#1f2933',
+        fontColor: '#1f2933',
+        fontSize: 11,
+      },
+      // ▬ Bifurcación (fork) UML: barra negra gruesa
+      COMPUERTA_PARALELA: {
+        shape: 'rectangle',
+        rounded: false,
+        fillColor: '#000000',
+        strokeColor: '#000000',
+        ...etiquetaAbajo,
+      },
+      // ▬ Unión (join) UML: barra negra gruesa (idéntica a fork)
+      COMPUERTA_UNION: {
+        shape: 'rectangle',
+        rounded: false,
+        fillColor: '#000000',
+        strokeColor: '#000000',
+        ...etiquetaAbajo,
+      },
     };
     return estilos[tipo] ?? {};
   }
 
   dimensionesParaTipo(tipo: TipoNodo): { ancho: number; alto: number } {
-    if (tipo === 'INICIO' || tipo === 'FIN') return { ancho: 40, alto: 40 };
-    if (tipo === 'DECISION') return { ancho: 80, alto: 60 };
+    if (tipo === 'INICIO' || tipo === 'FIN') return { ancho: 30, alto: 30 };
+    if (tipo === 'DECISION') return { ancho: 70, alto: 50 };
+    // Barras fork/join: rectángulo delgado horizontal
+    if (tipo === 'COMPUERTA_PARALELA' || tipo === 'COMPUERTA_UNION') return { ancho: 120, alto: 10 };
     return { ancho: 120, alto: 50 };
   }
 

@@ -6,6 +6,7 @@ import {
   OnChanges,
   SimpleChanges,
   HostBinding,
+  HostListener,
 } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -30,6 +31,12 @@ export class NodoPropiedadesComponent implements OnChanges {
   @Output() cerrado = new EventEmitter<void>();
 
   @HostBinding('class.panel-visible') get isVisible() { return !!this.nodo; }
+
+  /** Cerrar el modal con la tecla Escape. */
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    if (this.nodo) this.cerrado.emit();
+  }
 
   tabActiva = 0;
   formularioFlujo!: FormGroup;
@@ -143,6 +150,19 @@ export class NodoPropiedadesComponent implements OnChanges {
     this.nodo.formulario!.instrucciones = this.formularioFormulario.value.instrucciones ?? '';
     this.autoGuardar.emit();
     this.snackBar.open('Encabezado guardado.', 'Cerrar', { duration: 2000 });
+  }
+
+  // ── Gestión documental: switch "requiere documentos" ───────────────────
+
+  get requiereDocumentos(): boolean {
+    return this.nodo?.formulario?.requiereDocumentos ?? false;
+  }
+
+  alternarRequiereDocumentos(valor: boolean): void {
+    if (!this.nodo) return;
+    this.asegurarFormulario();
+    this.nodo.formulario!.requiereDocumentos = valor;
+    this.autoGuardar.emit();
   }
 
   agregarRequisito(): void {

@@ -23,7 +23,8 @@ export class LoginComponent implements OnInit {
 
   // ngOnInit es requerido por la interfaz OnInit de Angular
   ngOnInit(): void {
-    if (this.authService.estaAutenticado()) {
+    const rol = this.authService.obtenerRol();
+    if (this.authService.estaAutenticado() && (rol === 'ADMIN' || rol === 'ASESOR')) {
       this.redirigirSegunRol();
     }
 
@@ -57,8 +58,11 @@ export class LoginComponent implements OnInit {
     const rol = this.authService.obtenerRol();
     if (rol === 'ADMIN') {
       this.router.navigate(['/policy']);
-    } else {
+    } else if (rol === 'ASESOR') {
       this.router.navigate(['/workflow/monitor']);
+    } else {
+      // CLIENTE u otro rol no debe usar este login
+      this.authService.cerrarSesion();
     }
   }
 }

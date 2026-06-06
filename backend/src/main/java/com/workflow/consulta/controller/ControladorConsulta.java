@@ -1,6 +1,7 @@
 package com.workflow.consulta.controller;
 
 import com.workflow.consulta.dto.RespuestaConsulta;
+import com.workflow.consulta.dto.RespuestaConsultaCliente;
 import com.workflow.consulta.dto.RespuestaVerificacionConsulta;
 import com.workflow.consulta.dto.SolicitudAtenderConsulta;
 import com.workflow.consulta.dto.SolicitudCrearConsulta;
@@ -8,12 +9,14 @@ import com.workflow.consulta.dto.SolicitudFcmToken;
 import com.workflow.consulta.model.EstadoConsulta;
 import com.workflow.consulta.service.ServicioConsulta;
 import com.workflow.execution.service.ServicioTramite;
+import com.workflow.iam.model.User;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -27,14 +30,36 @@ public class ControladorConsulta {
   private final ServicioTramite servicioTramite;
 
   /**
-   * PUBLIC — el cliente crea una consulta desde la app Flutter.
-   * No requiere autenticación.
+   * CLIENTE — crea una consulta ligada a su cuenta autenticada.
    */
   @PostMapping
+  @PreAuthorize("hasRole('CLIENTE')")
   public ResponseEntity<RespuestaConsulta> crearConsulta(
-      @Valid @RequestBody SolicitudCrearConsulta solicitud) {
+      @Valid @RequestBody SolicitudCrearConsulta solicitud,
+      @AuthenticationPrincipal User cliente) {
     return ResponseEntity.status(HttpStatus.CREATED)
-        .body(servicioConsulta.crearConsulta(solicitud));
+        .body(servicioConsulta.crearConsulta(solicitud, cliente));
+  }
+
+  /**
+   * CLIENTE — lista las consultas del cliente autenticado (con su estado).
+   */
+  @GetMapping("/mias")
+  @PreAuthorize("hasRole('CLIENTE')")
+  public ResponseEntity<List<RespuestaConsulta>> misConsultas(
+      @AuthenticationPrincipal User cliente) {
+    return ResponseEntity.ok(servicioConsulta.listarMisConsultas(cliente));
+  }
+
+  /**
+   * CLIENTE — detalle de una consulta propia con el progreso del trámite (pasos).
+   */
+  @GetMapping("/mias/{id}")
+  @PreAuthorize("hasRole('CLIENTE')")
+  public ResponseEntity<RespuestaConsultaCliente> miConsulta(
+      @PathVariable String id,
+      @AuthenticationPrincipal User cliente) {
+    return ResponseEntity.ok(servicioConsulta.obtenerMiConsulta(id, cliente));
   }
 
   /**

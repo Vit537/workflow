@@ -1,0 +1,27 @@
+<mat-toolbar color="primary" class="cliente-toolbar">
+  <mat-icon class="logo-icon">support_agent</mat-icon>
+  <span class="titulo">Portal del Cliente</span>
+  <span class="spacer"></span>
+
+  <a mat-button routerLink="/cliente/consultas" routerLinkActive="activo">
+    <mat-icon>folder_shared</mat-icon> Mis consultas
+  </a>
+
+  <a mat-button routerLink="/cliente/notificaciones" routerLinkActive="activo"
+     (click)="refrescarNoLeidas()">
+    <mat-icon [matBadge]="noLeidas" [matBadgeHidden]="noLeidas === 0"
+              matBadgeColor="warn" matBadgeSize="small">notifications</mat-icon>
+    Notificaciones
+  </a>
+
+  <span class="usuario">
+    <mat-icon>account_circle</mat-icon> {{ nombre }}
+  </span>
+  <button mat-icon-button (click)="cerrarSesion()" matTooltip="Cerrar sesión">
+    <mat-icon>logout</mat-icon>
+  </button>
+</mat-toolbar>
+
+<div class="cliente-contenido">
+  <router-outlet></router-outlet>
+</div>

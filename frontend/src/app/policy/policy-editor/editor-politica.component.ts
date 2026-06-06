@@ -56,6 +56,9 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   // Panel IA
   panelIaAbierto = false;
 
+  // Repositorio documental
+  repositorioAbierto = false;
+
   // CU-07: publicar
   publicando = false;
   panelPublicarAbierto = false;
@@ -78,12 +81,12 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   private coloresRemoto = new Map<string, string>();
 
   readonly tiposNodo: { tipo: TipoNodo; etiqueta: string; icono: string }[] = [
-    { tipo: 'INICIO',             etiqueta: 'Inicio',   icono: 'play_circle' },
-    { tipo: 'ACTIVIDAD',          etiqueta: 'Actividad', icono: 'task' },
-    { tipo: 'DECISION',           etiqueta: 'Decision', icono: 'call_split' },
-    { tipo: 'COMPUERTA_PARALELA', etiqueta: 'Paralela', icono: 'device_hub' },
-    { tipo: 'COMPUERTA_UNION',    etiqueta: 'Union',    icono: 'merge_type' },
-    { tipo: 'FIN',                etiqueta: 'Fin',      icono: 'stop_circle' },
+    { tipo: 'INICIO',             etiqueta: 'Inicio',    icono: 'fiber_manual_record' },
+    { tipo: 'ACTIVIDAD',          etiqueta: 'Actividad', icono: 'crop_landscape' },
+    { tipo: 'DECISION',           etiqueta: 'Decision',  icono: 'change_history' },
+    { tipo: 'COMPUERTA_PARALELA', etiqueta: 'Fork',      icono: 'horizontal_rule' },
+    { tipo: 'COMPUERTA_UNION',    etiqueta: 'Join',      icono: 'horizontal_rule' },
+    { tipo: 'FIN',                etiqueta: 'Fin',       icono: 'adjust' },
   ];
 
   @HostListener('document:keydown', ['$event'])
@@ -298,11 +301,16 @@ export class EditorPoliticaComponent implements OnInit, OnDestroy {
   volverALista(): void { this.router.navigate(['/policy']); }
 
   getNodoDotColor(tipo: string): string {
+    // Paleta UML 2.5: negro para nodos de control, gris oscuro para acción/decisión
     const colors: Record<string, string> = {
-      INICIO: '#22c55e', ACTIVIDAD: '#3b82f6', DECISION: '#f59e0b',
-      COMPUERTA_PARALELA: '#a855f7', COMPUERTA_UNION: '#a855f7', FIN: '#ef4444',
+      INICIO:             '#000000',
+      FIN:                '#000000',
+      COMPUERTA_PARALELA: '#000000',
+      COMPUERTA_UNION:    '#000000',
+      ACTIVIDAD:          '#1f2933',
+      DECISION:           '#1f2933',
     };
-    return colors[tipo] ?? '#94a3b8';
+    return colors[tipo] ?? '#1f2933';
   }
 
   toggleIA(): void {

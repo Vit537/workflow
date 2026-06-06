@@ -45,5 +45,22 @@ public class InicializadorDatos implements CommandLineRunner {
         System.out.println(">> Usuario administrador ya existe (índice único activo).");
       }
     }
+
+    // Asesor de prueba (para atender consultas de clientes en el flujo completo)
+    if (!usuarioRepositorio.existsByCorreo("asesor@workflow.com")) {
+      try {
+        User asesor = User.builder()
+            .nombre("Asesor de Prueba")
+            .correo("asesor@workflow.com")
+            .contrasena(codificadorContrasena.encode("asesor123"))
+            .rol(Rol.ASESOR)
+            .activo(true)
+            .build();
+        usuarioRepositorio.save(asesor);
+        System.out.println(">> Usuario asesor creado: asesor@workflow.com / asesor123");
+      } catch (DuplicateKeyException e) {
+        System.out.println(">> Usuario asesor ya existe (índice único activo).");
+      }
+    }
   }
 }

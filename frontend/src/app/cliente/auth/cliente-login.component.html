@@ -1,0 +1,43 @@
+<div class="auth-wrapper">
+  <mat-card class="auth-card">
+    <div class="auth-header">
+      <mat-icon>support_agent</mat-icon>
+      <h2>Portal del Cliente</h2>
+      <p>Inicia sesión para gestionar tus consultas</p>
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="ingresar()">
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Correo</mat-label>
+        <input matInput type="email" formControlName="correo" placeholder="tucorreo@email.com">
+        <mat-icon matSuffix>mail</mat-icon>
+      </mat-form-field>
+
+      <mat-form-field appearance="outline" class="full">
+        <mat-label>Contraseña</mat-label>
+        <input matInput [type]="ocultar ? 'password' : 'text'" formControlName="contrasena">
+        <button mat-icon-button matSuffix type="button" (click)="ocultar = !ocultar">
+          <mat-icon>{{ ocultar ? 'visibility' : 'visibility_off' }}</mat-icon>
+        </button>
+      </mat-form-field>
+
+      <p *ngIf="error" class="auth-error">{{ error }}</p>
+
+      <button mat-raised-button color="primary" class="full" type="submit"
+        [disabled]="form.invalid || cargando">
+        <mat-spinner *ngIf="cargando" diameter="18"></mat-spinner>
+        <span *ngIf="!cargando">Ingresar</span>
+      </button>
+
+      <!-- Login con Google: pendiente -->
+      <button mat-stroked-button class="full btn-google" type="button" disabled
+        matTooltip="Próximamente">
+        <mat-icon>g_translate</mat-icon> Continuar con Google (pronto)
+      </button>
+
+      <p class="auth-link">¿No tienes cuenta?
+        <a routerLink="/cliente/registro">Regístrate</a>
+      </p>
+    </form>
+  </mat-card>
+</div>

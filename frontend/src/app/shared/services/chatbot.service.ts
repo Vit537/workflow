@@ -1,8 +1,8 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../environments/environment';
 
 export interface MensajeChat {
   rol: 'user' | 'assistant';
@@ -97,7 +97,8 @@ export class ChatbotService {
 
   constructor(private http: HttpClient) {}
 
-  enviarMensaje(historial: MensajeChat[], nuevoMensaje: string, rol: 'ADMIN' | 'ASESOR'): Observable<string> {
+  enviarMensaje(historial: MensajeChat[], nuevoMensaje: string,
+      rol: 'ADMIN' | 'ASESOR' | 'CLIENTE'): Observable<string> {
     const sistemPrompt = rol === 'ADMIN' ? SISTEMA_ADMIN : SISTEMA_ASESOR;
 
     const mensajes: GroqMessage[] = [

@@ -28,10 +28,11 @@ public class ControladorCliente {
   private final ServicioArchivos servicioArchivos;
 
   /**
-   * PUBLIC — el cliente envía los datos de texto de su formulario para el paso actual.
+   * CLIENTE/ASESOR/ADMIN — envía los datos de texto del formulario para el paso actual.
    * Body: { "campo1": "valor1", "campo2": "valor2", ... }
    */
   @PostMapping("/{tramiteId}/pasos/{nodoId}/datos-cliente")
+  @PreAuthorize("hasAnyRole('CLIENTE', 'ASESOR', 'ADMIN')")
   public ResponseEntity<RespuestaPasoCliente> enviarDatosFormulario(
       @PathVariable String tramiteId,
       @PathVariable String nodoId,
@@ -41,11 +42,12 @@ public class ControladorCliente {
   }
 
   /**
-   * PUBLIC — el cliente sube un archivo (foto, documento) para un campo específico del formulario.
+   * CLIENTE/ASESOR/ADMIN — sube un archivo (foto, documento) para un campo del formulario.
    * Param "campo": nombre del campo en el formulario (ej. "fotoCasa", "croquis").
    */
   @PostMapping(value = "/{tramiteId}/pasos/{nodoId}/archivos",
       consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PreAuthorize("hasAnyRole('CLIENTE', 'ASESOR', 'ADMIN')")
   public ResponseEntity<RespuestaPasoCliente> subirArchivo(
       @PathVariable String tramiteId,
       @PathVariable String nodoId,

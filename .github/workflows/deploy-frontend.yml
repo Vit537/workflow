@@ -3,7 +3,7 @@ name: Deploy Frontend
 on:
   push:
     branches:
-      - ciclo-4
+      - ft-ciclo4-new
     paths:
       - 'frontend/**'
       - '.github/workflows/deploy-frontend.yml'

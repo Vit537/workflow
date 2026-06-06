@@ -1,47 +1,92 @@
 <div class="consultas-container">
   <div class="header-row">
     <h2>Consultas de Clientes</h2>
-    <button mat-raised-button color="primary" (click)="cargar()">
-      <mat-icon>refresh</mat-icon> Actualizar
-    </button>
   </div>
-
-  <!-- Filtro por estado -->
-  <mat-form-field appearance="outline" class="filtro-campo">
-    <mat-label>Filtrar por estado</mat-label>
-    <mat-select [(ngModel)]="filtroEstado" (selectionChange)="cambiarFiltro()">
-      <mat-option *ngFor="let e of estados" [value]="e.valor">{{ e.etiqueta }}</mat-option>
-    </mat-select>
-  </mat-form-field>
 
   <div *ngIf="error" class="error-msg">{{ error }}</div>
 
-  <ng-container *ngIf="consultas$ | async as consultas; else cargandoTpl">
-    <div *ngIf="consultas.length === 0" class="vacio">
-      No hay consultas para el filtro seleccionado.
-    </div>
+  <mat-tab-group class="secciones-tabs">
 
-    <mat-card
-      *ngFor="let c of consultas"
-      class="consulta-card"
-      (click)="verDetalle(c.id, c)"
-    >
-      <mat-card-header>
-        <mat-card-title>{{ c.clienteNombre }}</mat-card-title>
-        <mat-card-subtitle>
-          <span [ngClass]="claseEstado(c.estado)" class="badge">
-            {{ etiquetaEstado(c.estado) }}
-          </span>
-          &nbsp;·&nbsp;{{ c.creadaEn | date: 'dd/MM/yyyy HH:mm' }}
-        </mat-card-subtitle>
-      </mat-card-header>
-      <mat-card-content>
-        <p>{{ c.descripcion }}</p>
-        <small *ngIf="c.clienteCorreo">{{ c.clienteCorreo }}</small>
-        <small *ngIf="c.clienteTelefono">&nbsp;| {{ c.clienteTelefono }}</small>
-      </mat-card-content>
-    </mat-card>
-  </ng-container>
+    <!-- ═══ Sección: Consultas ═══ -->
+    <mat-tab label="Consultas">
+      <div class="seccion-contenido">
+        <div class="barra-acciones">
+          <mat-form-field appearance="outline" class="filtro-campo">
+            <mat-label>Filtrar por estado</mat-label>
+            <mat-select [(ngModel)]="filtroEstado" (selectionChange)="cambiarFiltro()">
+              <mat-option *ngFor="let e of estados" [value]="e.valor">{{ e.etiqueta }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <button mat-raised-button color="primary" (click)="cargar()">
+            <mat-icon>refresh</mat-icon> Actualizar
+          </button>
+        </div>
+
+        <ng-container *ngIf="consultas$ | async as consultas; else cargandoTpl">
+          <div *ngIf="consultas.length === 0" class="vacio">
+            No hay consultas para el filtro seleccionado.
+          </div>
+
+          <mat-card
+            *ngFor="let c of consultas"
+            class="consulta-card"
+            (click)="verDetalle(c.id, c)"
+          >
+            <mat-card-header>
+              <mat-card-title>{{ c.clienteNombre }}</mat-card-title>
+              <mat-card-subtitle>
+                <span [ngClass]="claseEstado(c.estado)" class="badge">
+                  {{ etiquetaEstado(c.estado) }}
+                </span>
+                &nbsp;·&nbsp;{{ c.creadaEn | date: 'dd/MM/yyyy HH:mm' }}
+              </mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <p>{{ c.descripcion }}</p>
+              <small *ngIf="c.clienteCorreo">{{ c.clienteCorreo }}</small>
+              <small *ngIf="c.clienteTelefono">&nbsp;| {{ c.clienteTelefono }}</small>
+            </mat-card-content>
+          </mat-card>
+        </ng-container>
+      </div>
+    </mat-tab>
+
+    <!-- ═══ Sección: Chats con clientes ═══ -->
+    <mat-tab label="Chats">
+      <div class="seccion-contenido">
+        <div class="barra-acciones">
+          <p class="hint">Conversaciones de consultas en atención.</p>
+          <button mat-raised-button color="primary" (click)="recargarChats()">
+            <mat-icon>refresh</mat-icon> Actualizar
+          </button>
+        </div>
+
+        <ng-container *ngIf="chats$ | async as chats; else cargandoTpl">
+          <div *ngIf="chats.length === 0" class="vacio">
+            No hay conversaciones activas todavía.
+          </div>
+
+          <mat-card
+            *ngFor="let c of chats"
+            class="consulta-card chat-card"
+            (click)="verChat(c.id, c)"
+          >
+            <mat-card-header>
+              <div mat-card-avatar class="avatar-chat">
+                <mat-icon>chat</mat-icon>
+              </div>
+              <mat-card-title>{{ c.clienteNombre }}</mat-card-title>
+              <mat-card-subtitle>{{ c.clienteCorreo }}</mat-card-subtitle>
+            </mat-card-header>
+            <mat-card-content>
+              <p class="chat-desc">{{ c.descripcion }}</p>
+            </mat-card-content>
+          </mat-card>
+        </ng-container>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
 
   <ng-template #cargandoTpl>
     <div class="centro">

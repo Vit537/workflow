@@ -1,7 +1,8 @@
-import { Injectable } from '@angular/core';
+﻿import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { environment } from '../../../../environments/environment';
+import { environment } from '../../../environments/environment';
+import { Formulario } from '../models/policy.model';
 
 export type EstadoTramite = 'ACTIVO' | 'COMPLETADO' | 'CANCELADO';
 export type EstadoPaso = 'PENDIENTE' | 'EN_PROGRESO' | 'COMPLETADO' | 'BLOQUEADO';
@@ -15,6 +16,8 @@ export interface RespuestaPaso {
   asignadoEn: string;
   completadoEn?: string;
   datosFormulario?: Record<string, unknown>;
+  /** Definición del formulario del paso (incluye requiereDocumentos). Null si el nodo no tiene. */
+  formulario?: Formulario;
 }
 
 export interface RespuestaTramite {

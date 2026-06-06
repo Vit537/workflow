@@ -19,6 +19,8 @@ import { MatNativeDateModule } from '@angular/material/core';
 import { MatSelectModule } from '@angular/material/select';
 import { MatMenuModule } from '@angular/material/menu';
 import { MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTabsModule } from '@angular/material/tabs';
+import { MatBadgeModule } from '@angular/material/badge';
 
 import { WorkflowRoutingModule } from './workflow-routing-module';
 import { MonitorActividadesComponent } from './activity-monitor/monitor-actividades.component';
@@ -66,6 +68,8 @@ import { NodosPorCarrilPipe } from '../shared/pipes/nodos-por-carril.pipe';
     MatSelectModule,
     MatMenuModule,
     MatSnackBarModule,
+    MatTabsModule,
+    MatBadgeModule,
   ],
 })
 export class WorkflowModule {}

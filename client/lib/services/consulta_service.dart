@@ -2,120 +2,97 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
+import '../config.dart';
+import 'auth_service.dart';
 
-/// URL base del backend en producción (Cloud Run).
-const String _baseUrl =
-    'https://spring-service-826923971440.us-central1.run.app';
-
+/// Servicios de consultas del cliente autenticado.
 class ConsultaService {
-  /// Crea una nueva consulta (endpoint público, sin JWT).
-  static Future<Map<String, dynamic>> crearConsulta({
-    required String clienteNombre,
-    required String descripcion,
-    String? clienteCorreo,
-    String? clienteTelefono,
-  }) async {
-    final uri = Uri.parse('$_baseUrl/api/consultas');
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
-      body: jsonEncode({
-        'clienteNombre': clienteNombre,
-        'descripcion': descripcion,
-        if (clienteCorreo != null && clienteCorreo.isNotEmpty)
-          'clienteCorreo': clienteCorreo,
-        if (clienteTelefono != null && clienteTelefono.isNotEmpty)
-          'clienteTelefono': clienteTelefono,
-      }),
+  /// Lista las consultas del cliente autenticado.
+  static Future<List<Map<String, dynamic>>> misConsultas() async {
+    final res = await http.get(
+      Uri.parse('$apiBaseUrl/api/consultas/mias'),
+      headers: AuthService.authHeader,
     );
-
-    if (response.statusCode == 201) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+    if (res.statusCode == 200) {
+      return (jsonDecode(res.body) as List).cast<Map<String, dynamic>>();
     }
-    throw Exception('Error al crear consulta: ${response.body}');
+    throw Exception('Error al listar consultas: ${res.body}');
   }
 
-  /// Registra el token FCM del dispositivo en la consulta creada.
+  /// Crea una nueva consulta (solo descripción; los datos salen de la cuenta).
+  static Future<Map<String, dynamic>> crearConsulta(String descripcion) async {
+    final res = await http.post(
+      Uri.parse('$apiBaseUrl/api/consultas'),
+      headers: AuthService.jsonHeaders,
+      body: jsonEncode({'descripcion': descripcion}),
+    );
+    if (res.statusCode == 201 || res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Error al crear consulta: ${res.body}');
+  }
+
+  /// Detalle de una consulta del cliente con el progreso del trámite.
+  static Future<Map<String, dynamic>> detalle(String consultaId) async {
+    final res = await http.get(
+      Uri.parse('$apiBaseUrl/api/consultas/mias/$consultaId'),
+      headers: AuthService.authHeader,
+    );
+    if (res.statusCode == 200) {
+      return jsonDecode(res.body) as Map<String, dynamic>;
+    }
+    throw Exception('Error al obtener consulta: ${res.body}');
+  }
+
+  /// Registra el token FCM del dispositivo (para notificaciones push).
   static Future<void> registrarFcmToken({
     required String consultaId,
     required String fcmToken,
   }) async {
-    final uri = Uri.parse('$_baseUrl/api/consultas/$consultaId/fcm-token');
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
+    await http.post(
+      Uri.parse('$apiBaseUrl/api/consultas/$consultaId/fcm-token'),
+      headers: AuthService.jsonHeaders,
       body: jsonEncode({'fcmToken': fcmToken}),
     );
-
-    if (response.statusCode != 200) {
-      throw Exception('Error al registrar token: ${response.body}');
-    }
   }
 
-  /// Consulta el estado actual de una consulta (endpoint público).
-  static Future<Map<String, dynamic>> consultarEstado(String consultaId) async {
-    final uri = Uri.parse('$_baseUrl/api/consultas/$consultaId/estado');
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    }
-    throw Exception('Error al consultar estado: ${response.body}');
-  }
-
-  /// Obtiene el paso activo actual del trámite asociado a la consulta.
-  static Future<Map<String, dynamic>?> obtenerPasoActual(
-      String consultaId) async {
-    final uri = Uri.parse('$_baseUrl/api/consultas/$consultaId/paso-actual');
-    final response = await http.get(uri);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    }
-    throw Exception('Error al obtener paso actual: ${response.body}');
-  }
-
-  /// Envía los datos de texto del formulario para un paso.
-  static Future<Map<String, dynamic>> enviarDatosFormulario({
+  /// Envía los datos del formulario de un paso del trámite.
+  static Future<void> enviarDatos({
     required String tramiteId,
     required String nodoId,
     required Map<String, dynamic> datos,
   }) async {
-    final uri = Uri.parse(
-        '$_baseUrl/api/tramites/$tramiteId/pasos/$nodoId/datos-cliente');
-    final response = await http.post(
-      uri,
-      headers: {'Content-Type': 'application/json'},
+    final res = await http.post(
+      Uri.parse('$apiBaseUrl/api/tramites/$tramiteId/pasos/$nodoId/datos-cliente'),
+      headers: AuthService.jsonHeaders,
       body: jsonEncode(datos),
     );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+    if (res.statusCode != 200) {
+      throw Exception('Error al enviar datos: ${res.body}');
     }
-    throw Exception('Error al enviar datos: ${response.body}');
   }
 
-  /// Sube un archivo para un campo del formulario.
-  static Future<Map<String, dynamic>> subirArchivo({
+  /// Sube un archivo del cliente a un paso del trámite.
+  static Future<void> subirArchivo({
     required String tramiteId,
     required String nodoId,
     required String campo,
     required File archivo,
   }) async {
     final uri = Uri.parse(
-        '$_baseUrl/api/tramites/$tramiteId/pasos/$nodoId/archivos?campo=$campo');
-
+        '$apiBaseUrl/api/tramites/$tramiteId/pasos/$nodoId/archivos?campo=$campo');
     final request = http.MultipartRequest('POST', uri);
-    final mimeType = _detectarMime(archivo.path);
+    request.headers.addAll(AuthService.authHeader);
     request.files.add(await http.MultipartFile.fromPath(
       'archivo',
       archivo.path,
-      contentType: MediaType.parse(mimeType),
+      contentType: MediaType.parse(_detectarMime(archivo.path)),
     ));
-
     final streamed = await request.send();
     final response = await http.Response.fromStream(streamed);
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body) as Map<String, dynamic>;
+    if (response.statusCode != 200) {
+      throw Exception('Error al subir archivo: ${response.body}');
     }
-    throw Exception('Error al subir archivo: ${response.body}');
   }
 
   static String _detectarMime(String path) {
@@ -128,6 +105,12 @@ class ConsultaService {
         return 'image/png';
       case 'pdf':
         return 'application/pdf';
+      case 'doc':
+      case 'docx':
+        return 'application/msword';
+      case 'xls':
+      case 'xlsx':
+        return 'application/vnd.ms-excel';
       default:
         return 'application/octet-stream';
     }

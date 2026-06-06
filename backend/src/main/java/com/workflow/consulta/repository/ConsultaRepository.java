@@ -22,4 +22,7 @@ public interface ConsultaRepository extends MongoRepository<Consulta, String> {
 
   /** Busca consultas por correo del cliente, ordenadas de más reciente a más antigua. */
   List<Consulta> findByClienteCorreoOrderByCreadaEnDesc(String clienteCorreo);
+
+  /** Consultas del cliente autenticado (por id de usuario), más recientes primero. */
+  List<Consulta> findByClienteIdOrderByCreadaEnDesc(String clienteId);
 }

@@ -1,6 +1,7 @@
 package com.workflow.consulta.service;
 
 import com.workflow.consulta.dto.RespuestaConsulta;
+import com.workflow.consulta.dto.RespuestaConsultaCliente;
 import com.workflow.consulta.dto.RespuestaVerificacionConsulta;
 import com.workflow.consulta.dto.SolicitudAtenderConsulta;
 import com.workflow.consulta.dto.SolicitudCrearConsulta;
@@ -9,7 +10,9 @@ import com.workflow.consulta.model.EstadoConsulta;
 import com.workflow.consulta.repository.ConsultaRepository;
 import com.workflow.execution.dto.SolicitudCrearTramite;
 import com.workflow.execution.service.ServicioTramite;
+import com.workflow.iam.model.User;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -24,19 +27,55 @@ public class ServicioConsulta {
   private final ConsultaRepository consultaRepository;
   private final ServicioTramite servicioTramite;
   private final ServicioNotificacion servicioNotificacion;
+  private final ServicioNotificacionPersistente notificacionesPersistentes;
 
   // ── CU: Crear consulta (cliente) ──────────────────────────────────────
 
-  public RespuestaConsulta crearConsulta(SolicitudCrearConsulta solicitud) {
+  /** Crea una consulta ligada al cliente autenticado (los datos de contacto salen de su cuenta). */
+  public RespuestaConsulta crearConsulta(SolicitudCrearConsulta solicitud, User cliente) {
     Consulta consulta = Consulta.builder()
-        .clienteNombre(solicitud.getClienteNombre())
-        .clienteCorreo(solicitud.getClienteCorreo())
-        .clienteTelefono(solicitud.getClienteTelefono())
+        .clienteId(cliente.getId())
+        .clienteNombre(cliente.getNombre())
+        .clienteCorreo(cliente.getCorreo())
+        .clienteTelefono(cliente.getTelefono() != null ? cliente.getTelefono() : solicitud.getClienteTelefono())
         .descripcion(solicitud.getDescripcion())
         .estado(EstadoConsulta.PENDIENTE)
         .creadaEn(Instant.now())
         .build();
     return mapear(consultaRepository.save(consulta));
+  }
+
+  /** Lista las consultas del cliente autenticado. */
+  public List<RespuestaConsulta> listarMisConsultas(User cliente) {
+    return consultaRepository.findByClienteIdOrderByCreadaEnDesc(cliente.getId())
+        .stream().map(this::mapear).collect(Collectors.toList());
+  }
+
+  /** Detalle de una consulta del cliente con el progreso del trámite (valida propiedad). */
+  public RespuestaConsultaCliente obtenerMiConsulta(String consultaId, User cliente) {
+    Consulta consulta = buscarPorId(consultaId);
+    if (consulta.getClienteId() == null || !consulta.getClienteId().equals(cliente.getId())) {
+      throw new AccessDeniedException("Esta consulta no te pertenece");
+    }
+
+    com.workflow.execution.dto.RespuestaTramite tramite = null;
+    if (consulta.getTramiteId() != null) {
+      try {
+        tramite = servicioTramite.obtenerTramite(consulta.getTramiteId());
+      } catch (RuntimeException ignored) { /* trámite eliminado */ }
+    }
+
+    return RespuestaConsultaCliente.builder()
+        .id(consulta.getId())
+        .descripcion(consulta.getDescripcion())
+        .estado(consulta.getEstado())
+        .asesorCorreo(consulta.getAsesorCorreo())
+        .mensajeAsesor(consulta.getMensajeAsesor())
+        .tramiteId(consulta.getTramiteId())
+        .creadaEn(consulta.getCreadaEn())
+        .atendidaEn(consulta.getAtendidaEn())
+        .tramite(tramite)
+        .build();
   }
 
   // ── Registrar FCM token del cliente ───────────────────────────────────
@@ -95,7 +134,7 @@ public class ServicioConsulta {
 
     consultaRepository.save(consulta);
 
-    // Enviar notificación push al cliente
+    // Enviar notificación push al cliente (móvil) + persistir (campanita web/móvil)
     String titulo = "Respuesta a tu consulta";
     String cuerpo = solicitud.getMensajeAsesor();
     servicioNotificacion.enviarNotificacion(
@@ -103,6 +142,8 @@ public class ServicioConsulta {
         Map.of("consultaId", consultaId,
                "tipo", "ATENCION",
                "tramiteId", consulta.getTramiteId() != null ? consulta.getTramiteId() : ""));
+    notificacionesPersistentes.crearParaUsuario(consulta.getClienteId(), titulo, cuerpo,
+        com.workflow.consulta.model.TipoNotificacion.CONSULTA_ATENDIDA, consultaId);
 
     return mapear(consulta);
   }
@@ -119,11 +160,13 @@ public class ServicioConsulta {
     consulta.setEstado(EstadoConsulta.COMPLETADA);
     consultaRepository.save(consulta);
 
+    String titulo = "Tu consulta fue resuelta";
+    String cuerpo = "Tu trámite ha sido procesado exitosamente. ¡Gracias por contactarnos!";
     servicioNotificacion.enviarNotificacion(
-        consulta.getFcmToken(),
-        "Tu consulta fue resuelta",
-        "Tu trámite ha sido procesado exitosamente. ¡Gracias por contactarnos!",
+        consulta.getFcmToken(), titulo, cuerpo,
         Map.of("consultaId", consultaId, "tipo", "COMPLETADA"));
+    notificacionesPersistentes.crearParaUsuario(consulta.getClienteId(), titulo, cuerpo,
+        com.workflow.consulta.model.TipoNotificacion.CONSULTA_COMPLETADA, consultaId);
 
     return mapear(consulta);
   }

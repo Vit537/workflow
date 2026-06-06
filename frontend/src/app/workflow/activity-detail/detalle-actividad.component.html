@@ -112,16 +112,24 @@
       <div class="datos-cliente-lista">
         <div *ngFor="let entrada of datosCliente" class="dato-cliente-item">
           <span class="dato-campo">{{ entrada.campo }}</span>
-          <ng-container *ngIf="esArchivo(entrada.valor); else valorTexto">
-            <a [href]="urlDescarga(entrada.valor)" target="_blank" rel="noopener"
-              class="link-descarga" mat-stroked-button color="primary">
-              <mat-icon>download</mat-icon>
-              {{ nombreArchivo(entrada.valor) }}
-            </a>
-          </ng-container>
-          <ng-template #valorTexto>
-            <span class="dato-valor">{{ entrada.valor }}</span>
-          </ng-template>
+
+          <!-- Documento del sistema documental (campo ARCHIVO) -->
+          <button *ngIf="esCampoArchivo(entrada.campo)" mat-stroked-button color="primary"
+            class="link-descarga" (click)="descargarDocumento(entrada.valor)">
+            <mat-icon>download</mat-icon> Descargar documento
+          </button>
+
+          <!-- Ruta antigua "uploads/..." -->
+          <a *ngIf="!esCampoArchivo(entrada.campo) && esArchivoLegacy(entrada.valor)"
+            [href]="urlDescarga(entrada.valor)" target="_blank" rel="noopener"
+            class="link-descarga" mat-stroked-button color="primary">
+            <mat-icon>download</mat-icon>
+            {{ nombreArchivo(entrada.valor) }}
+          </a>
+
+          <!-- Valor de texto normal -->
+          <span *ngIf="!esCampoArchivo(entrada.campo) && !esArchivoLegacy(entrada.valor)"
+            class="dato-valor">{{ entrada.valor }}</span>
         </div>
       </div>
     </mat-card-content>

@@ -1,0 +1,96 @@
+.oo-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(2px);
+  z-index: 1200;
+}
+
+.oo-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 92vw;
+  height: 92vh;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 48px rgba(0, 0, 0, 0.35);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1201;
+  animation: oo-aparece 0.18s ease-out;
+}
+
+@keyframes oo-aparece {
+  from { opacity: 0; transform: translate(-50%, -48%) scale(0.98); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
+.oo-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px 8px 16px;
+  background: var(--mat-sys-primary, #1976d2);
+  color: #fff;
+  flex: 0 0 auto;
+
+  .oo-titulo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    h3 { margin: 0; font-size: 1rem; font-weight: 600; }
+  }
+
+  .oo-modo {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 12px;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.2);
+    font-size: 0.78rem;
+
+    mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  }
+
+  button { color: #fff; }
+}
+
+.oo-cuerpo {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.oo-editor {
+  width: 100%;
+  height: 100%;
+
+  &.oculto { visibility: hidden; }
+}
+
+.oo-cargando,
+.oo-error {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  color: #555;
+  text-align: center;
+  padding: 24px;
+}
+
+.oo-error mat-icon {
+  font-size: 48px;
+  width: 48px;
+  height: 48px;
+  color: #b00020;
+}

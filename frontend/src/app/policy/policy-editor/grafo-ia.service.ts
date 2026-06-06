@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Nodo, TipoNodo, TipoFlujo, Carril } from '../../shared/models/policy.model';
 import { DiagramaIA, AccionIA, ConexionIA } from '../../shared/services/ia.service';
 import { GrafoEstadoService } from './grafo-estado.service';
+import { GrafoRenderService } from './grafo-render.service';
 
 /**
  * Encapsula la lógica de aplicar diagramas y acciones generados por IA
@@ -13,7 +14,10 @@ import { GrafoEstadoService } from './grafo-estado.service';
 @Injectable()
 export class GrafoIaService {
 
-  constructor(private estado: GrafoEstadoService) {}
+  constructor(
+    private estado: GrafoEstadoService,
+    private render: GrafoRenderService,
+  ) {}
 
   private generarId(): string {
     return Math.random().toString(36).substring(2, 10);
@@ -76,8 +80,7 @@ export class GrafoIaService {
     const nodosConPosicion = diagrama.nodos.map((n) => {
       const row = rowPorCarril.get(n.carrilId) ?? 0;
       rowPorCarril.set(n.carrilId, row + 1);
-      const ancho = n.ancho ?? 120;
-      const alto = n.alto ?? 50;
+      const { ancho, alto } = this.render.dimensionesParaTipo(n.tipo as TipoNodo);
       return {
         ...n,
         posX: PADDING_X,
@@ -166,8 +169,7 @@ export class GrafoIaService {
           if (!carril) break;
           const nodoIdx = politica.nodos.filter(n => n.carrilId === carril.id).length;
           const tipo = (accion.datos['tipo'] ?? 'ACTIVIDAD') as TipoNodo;
-          const ancho = (tipo === 'INICIO' || tipo === 'FIN') ? 40 : tipo === 'DECISION' ? 80 : 120;
-          const alto  = (tipo === 'INICIO' || tipo === 'FIN') ? 40 : tipo === 'DECISION' ? 60 : 50;
+          const { ancho, alto } = this.render.dimensionesParaTipo(tipo);
           politica.nodos.push({
             id: this.generarId(),
             etiqueta: accion.datos['etiqueta'] ?? 'Nuevo nodo',

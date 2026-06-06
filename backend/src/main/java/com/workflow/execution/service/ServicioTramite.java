@@ -40,7 +40,7 @@ public class ServicioTramite {
   private final PoliticaRepository politicaRepository;
   private final ConsultaRepository consultaRepository;
   private final SimpMessagingTemplate mensajeria;
-  private final ServicioArchivos servicioArchivos;
+  private final com.workflow.document.service.ServicioDocumento servicioDocumento;
 
   public RespuestaTramite crearTramite(SolicitudCrearTramite solicitud, String correoIniciador) {
     Politica politica = politicaRepository.findById(solicitud.getPoliticaId())
@@ -71,21 +71,63 @@ public class ServicioTramite {
   }
 
   public List<RespuestaTramite> listarTramitesActivos() {
-    return tramiteRepository.findByEstado(EstadoTramite.ACTIVO)
-        .stream()
-        .map(this::mapearARespuesta)
+    List<Tramite> tramites = tramiteRepository.findByEstado(EstadoTramite.ACTIVO);
+    Map<String, Politica> politicas = cargarPoliticasEnLote(tramites);
+    return tramites.stream()
+        .map(t -> mapearARespuestaConConsulta(t, null, politicas.get(t.getPoliticaId())))
         .collect(Collectors.toList());
   }
 
   public List<RespuestaTramite> listarTramitesPorAsesor(String correo) {
     // Devuelve todos los trámites activos con al menos un paso no completado,
     // enriquecidos con los datos del cliente de la consulta vinculada.
-    return tramiteRepository.findByEstado(EstadoTramite.ACTIVO)
-        .stream()
+    List<Tramite> tramites = tramiteRepository.findByEstado(EstadoTramite.ACTIVO).stream()
         .filter(t -> t.getPasos().stream()
             .anyMatch(p -> p.getEstado() != EstadoPaso.COMPLETADO))
-        .map(this::mapearARespuestaEnriquecida)
         .collect(Collectors.toList());
+
+    // Precarga políticas y consultas en lote para evitar N+1 (clave con latencia de Atlas).
+    Map<String, Politica> politicas = cargarPoliticasEnLote(tramites);
+    Map<String, Consulta> consultasPorTramite = cargarConsultasEnLote(tramites);
+
+    return tramites.stream()
+        .map(t -> mapearARespuestaConConsulta(
+            t, consultasPorTramite.get(t.getId()), politicas.get(t.getPoliticaId())))
+        .collect(Collectors.toList());
+  }
+
+  /** Carga en una sola consulta las políticas distintas de un conjunto de trámites. */
+  private Map<String, Politica> cargarPoliticasEnLote(List<Tramite> tramites) {
+    List<String> ids = tramites.stream()
+        .map(Tramite::getPoliticaId)
+        .filter(java.util.Objects::nonNull)
+        .distinct()
+        .collect(Collectors.toList());
+    Map<String, Politica> mapa = new HashMap<>();
+    politicaRepository.findAllById(ids).forEach(p -> mapa.put(p.getId(), p));
+    return mapa;
+  }
+
+  /** Carga en una sola consulta las consultas vinculadas (por consultaId) de los trámites. */
+  private Map<String, Consulta> cargarConsultasEnLote(List<Tramite> tramites) {
+    List<String> consultaIds = tramites.stream()
+        .map(Tramite::getConsultaId)
+        .filter(java.util.Objects::nonNull)
+        .distinct()
+        .collect(Collectors.toList());
+    Map<String, Consulta> porId = new HashMap<>();
+    consultaRepository.findAllById(consultaIds).forEach(c -> porId.put(c.getId(), c));
+
+    // Indexa por tramiteId; para trámites sin consultaId, usa el fallback puntual.
+    Map<String, Consulta> porTramite = new HashMap<>();
+    for (Tramite t : tramites) {
+      Consulta c = t.getConsultaId() != null ? porId.get(t.getConsultaId()) : null;
+      if (c == null) {
+        c = consultaRepository.findByTramiteId(t.getId()).orElse(null);
+      }
+      if (c != null) porTramite.put(t.getId(), c);
+    }
+    return porTramite;
   }
 
   private List<PasoTramite> construirPasos(Politica politica) {
@@ -130,7 +172,25 @@ public class ServicioTramite {
     return mapearARespuestaConConsulta(tramite, consulta);
   }
 
+  /** Para usos de un solo trámite: resuelve la política con una lectura puntual. */
   private RespuestaTramite mapearARespuestaConConsulta(Tramite tramite, Consulta consulta) {
+    Politica politica = null;
+    try {
+      politica = politicaRepository.findById(tramite.getPoliticaId()).orElse(null);
+    } catch (Exception ignored) { /* Política eliminada */ }
+    return mapearARespuestaConConsulta(tramite, consulta, politica);
+  }
+
+  /** Variante con la política ya resuelta (usada por los listados con precarga en lote). */
+  private RespuestaTramite mapearARespuestaConConsulta(Tramite tramite, Consulta consulta, Politica politica) {
+    // Índice nodoId → Formulario para exponer el formulario de cada paso sin lecturas repetidas.
+    Map<String, com.workflow.policy.model.Formulario> formulariosPorNodo = new HashMap<>();
+    if (politica != null && politica.getNodos() != null) {
+      politica.getNodos().forEach(n -> {
+        if (n.getFormulario() != null) formulariosPorNodo.put(n.getId(), n.getFormulario());
+      });
+    }
+
     List<RespuestaPaso> pasos = tramite.getPasos().stream()
         .map(p -> RespuestaPaso.builder()
             .nodoId(p.getNodoId())
@@ -141,6 +201,7 @@ public class ServicioTramite {
             .asignadoEn(p.getAsignadoEn())
             .completadoEn(p.getCompletadoEn())
             .datosFormulario(p.getDatosFormulario())
+            .formulario(formulariosPorNodo.get(p.getNodoId()))
             .build())
         .collect(Collectors.toList());
 
@@ -307,7 +368,8 @@ public class ServicioTramite {
 
   /**
    * El cliente sube un archivo (foto, documento) para un campo del formulario.
-   * La referencia se guarda en datosFormulario[campo] = "ruta/archivo.ext".
+   * El archivo entra al sistema documental versionado (ligado a la política, el nodo y el trámite);
+   * en datosFormulario[campo] se guarda el id del documento creado/actualizado.
    */
   public RespuestaPasoCliente subirArchivoCliente(String tramiteId, String nodoId,
       String campo, MultipartFile archivo) throws IOException {
@@ -328,14 +390,19 @@ public class ServicioTramite {
       throw new RuntimeException("Este paso ya fue completado");
     }
 
-    String rutaArchivo = servicioArchivos.guardarArchivo(tramiteId, nodoId, campo, archivo);
-
     Map<String, Object> datos = paso.getDatosFormulario();
     if (datos == null) {
       datos = new HashMap<>();
       paso.setDatosFormulario(datos);
     }
-    datos.put(campo, rutaArchivo);
+
+    // Si ya había un documento para este campo, se agrega una versión nueva; si no, se crea.
+    Object previo = datos.get(campo);
+    String documentoIdPrevio = (previo instanceof String s) ? s : null;
+    var documento = servicioDocumento.subirComoCliente(
+        tramite.getPoliticaId(), nodoId, tramiteId, documentoIdPrevio, archivo);
+
+    datos.put(campo, documento.getId());
 
     tramiteRepository.save(tramite);
     mensajeria.convertAndSend("/topic/actividades", mapearARespuesta(tramite));

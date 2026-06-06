@@ -1,0 +1,115 @@
+<div class="detalle-cabecera">
+  <button mat-icon-button (click)="volver()"><mat-icon>arrow_back</mat-icon></button>
+  <h1>Detalle de la consulta</h1>
+</div>
+
+<div *ngIf="cargando" class="centrado"><mat-spinner diameter="34"></mat-spinner></div>
+
+<div *ngIf="!cargando && detalle">
+  <mat-card class="resumen">
+    <span class="estado" [class.completada]="detalle.estado === 'COMPLETADA'"
+      [class.atencion]="detalle.estado === 'EN_ATENCION'">{{ textoEstado(detalle.estado) }}</span>
+    <p class="descripcion">{{ detalle.descripcion }}</p>
+    <div class="mensaje-asesor" *ngIf="detalle.mensajeAsesor">
+      <mat-icon>support_agent</mat-icon>
+      <div>
+        <strong>Mensaje del asesor</strong>
+        <p>{{ detalle.mensajeAsesor }}</p>
+      </div>
+    </div>
+  </mat-card>
+
+  <mat-tab-group class="detalle-tabs">
+
+    <!-- Progreso -->
+    <mat-tab label="Progreso">
+      <div class="tab-pad">
+        <p *ngIf="!detalle.tramite" class="info-espera">
+          <mat-icon>hourglass_top</mat-icon>
+          Tu consulta está siendo revisada por un asesor. Cuando inicie tu trámite verás los pasos a seguir.
+        </p>
+
+        <div *ngIf="detalle.tramite" class="pasos">
+          <h3>{{ detalle.tramite.nombrePolitica }}</h3>
+          <div *ngFor="let p of pasos" class="paso" [class.hecho]="estaHecho(p)"
+            [class.actual]="p === pasoActual">
+            <mat-icon class="paso-icono">{{ estaHecho(p) ? 'check_circle' : (p === pasoActual ? 'radio_button_checked' : 'radio_button_unchecked') }}</mat-icon>
+            <div class="paso-info">
+              <span class="paso-nombre">{{ p.etiquetaNodo }}</span>
+              <span class="paso-meta">{{ p.carrilNombre }} · {{ estaHecho(p) ? 'Hecho' : (p === pasoActual ? 'En curso' : 'Pendiente') }}</span>
+            </div>
+          </div>
+
+          <!-- Formulario del paso actual (solo si el paso tiene uno configurado) -->
+          <div class="form-paso" *ngIf="pasoActual?.formulario as form">
+            <h4 *ngIf="form.titulo">{{ form.titulo }}</h4>
+            <p *ngIf="form.instrucciones" class="form-instrucciones">{{ form.instrucciones }}</p>
+
+            <ul *ngIf="form.requisitos.length" class="form-requisitos">
+              <li *ngFor="let r of form.requisitos"><mat-icon>check</mat-icon> {{ r }}</li>
+            </ul>
+
+            <!-- Campos a llenar -->
+            <div *ngIf="camposFormulario.length" class="form-campos">
+              <ng-container *ngFor="let c of camposFormulario">
+                <mat-checkbox *ngIf="c.tipoCampo === 'BOOLEANO'" [(ngModel)]="datosForm[c.nombre]">
+                  {{ c.etiqueta }}{{ c.requerido ? ' *' : '' }}
+                </mat-checkbox>
+
+                <mat-form-field *ngIf="c.tipoCampo !== 'BOOLEANO'" appearance="outline" class="full">
+                  <mat-label>{{ c.etiqueta }}{{ c.requerido ? ' *' : '' }}</mat-label>
+                  <input matInput [(ngModel)]="datosForm[c.nombre]"
+                    [type]="c.tipoCampo === 'NUMERO' ? 'number' : c.tipoCampo === 'FECHA' ? 'date' : 'text'">
+                </mat-form-field>
+              </ng-container>
+
+              <button mat-raised-button color="primary" (click)="enviarDatos()" [disabled]="enviandoDatos">
+                <mat-spinner *ngIf="enviandoDatos" diameter="18"></mat-spinner>
+                <mat-icon *ngIf="!enviandoDatos">send</mat-icon>
+                <span>{{ enviandoDatos ? 'Enviando...' : 'Enviar datos' }}</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Subida de archivos: SOLO si el admin lo configuró en este paso -->
+          <div class="subida" *ngIf="pasoActual && requiereDocumentos">
+            <input #file type="file" hidden (change)="onArchivo($event)"
+              [accept]="(pasoActual.formulario?.tiposPermitidos?.length ? '.' + pasoActual.formulario!.tiposPermitidos!.join(',.') : '')">
+            <button mat-stroked-button color="primary" (click)="file.click()" [disabled]="subiendo">
+              <mat-spinner *ngIf="subiendo" diameter="18"></mat-spinner>
+              <mat-icon *ngIf="!subiendo">upload_file</mat-icon>
+              <span>{{ subiendo ? 'Subiendo...' : 'Subir archivo para «' + pasoActual.etiquetaNodo + '»' }}</span>
+            </button>
+            <p class="subida-hint">
+              Adjunta los documentos solicitados<span *ngIf="pasoActual.formulario?.tiposPermitidos?.length">
+              ({{ pasoActual.formulario!.tiposPermitidos!.join(', ') }})</span>.
+            </p>
+          </div>
+        </div>
+      </div>
+    </mat-tab>
+
+    <!-- Mensajes -->
+    <mat-tab label="Mensajes con el asesor">
+      <div class="tab-pad chat">
+        <div class="chat-hilo">
+          <p *ngIf="mensajes.length === 0" class="chat-vacio">Aún no hay mensajes. Escribe tu duda al asesor.</p>
+          <div *ngFor="let m of mensajes" class="msg" [class.mio]="esMio(m)">
+            <span class="msg-autor">{{ esMio(m) ? 'Tú' : m.autorNombre }}</span>
+            <span class="msg-texto">{{ m.texto }}</span>
+            <span class="msg-fecha">{{ m.fecha | date:'short' }}</span>
+          </div>
+        </div>
+        <div class="chat-input">
+          <mat-form-field appearance="outline" class="full">
+            <mat-label>Escribe un mensaje</mat-label>
+            <input matInput [(ngModel)]="nuevoMensaje" (keydown.enter)="enviar()">
+          </mat-form-field>
+          <button mat-fab color="primary" (click)="enviar()" [disabled]="!nuevoMensaje.trim()">
+            <mat-icon>send</mat-icon>
+          </button>
+        </div>
+      </div>
+    </mat-tab>
+  </mat-tab-group>
+</div>
