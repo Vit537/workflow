@@ -8,6 +8,8 @@ export interface ResultadoReporte {
   descripcion: string;
   columnas: string[];
   filas: Record<string, any>[];
+  esKPI?: boolean;
+  descripcionKPI?: string | null;
   promptTranscrito?: string | null;
   total: number;
 }
@@ -30,6 +32,12 @@ export class ReporteService {
 
   exportarExcel(reporte: ResultadoReporte): Observable<Blob> {
     return this.http.post(`${this.urlApi}/exportar/excel`, reporte, {
+      responseType: 'blob',
+    });
+  }
+
+  exportarPdf(reporte: ResultadoReporte): Observable<Blob> {
+    return this.http.post(`${this.urlApi}/exportar/pdf`, reporte, {
       responseType: 'blob',
     });
   }

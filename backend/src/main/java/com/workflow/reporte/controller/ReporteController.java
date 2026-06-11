@@ -58,4 +58,19 @@ public class ReporteController {
                         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(resource);
     }
+
+    /**
+     * Exporta un reporte (ya generado) como archivo PDF.
+     * El frontend envía el ResultadoReporte y recibe el archivo .pdf.
+     */
+    @PostMapping("/exportar/pdf")
+    public ResponseEntity<ByteArrayResource> exportarPdf(
+            @RequestBody ResultadoReporte reporte) {
+        ByteArrayResource resource = reporteService.exportarPdf(reporte);
+        String filename = "reporte_" + LocalDate.now() + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(resource);
+    }
 }

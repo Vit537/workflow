@@ -11,5 +11,6 @@
 // const String apiBaseUrl =
 // 'https://spring-service-826923971440.us-central1.run.app';
 
-// Para pruebas locales (emulador Android), comenta la línea de arriba y usa:
-const String apiBaseUrl = 'http://10.0.2.2:8080';
+// Para pruebas locales (emulador Android), usa: 'http://10.0.2.2:8080'
+// Producción (AWS ALB):
+const String apiBaseUrl = 'http://workflow-alb-1633866102.sa-east-1.elb.amazonaws.com';

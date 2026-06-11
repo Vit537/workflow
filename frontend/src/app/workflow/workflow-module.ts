@@ -31,6 +31,7 @@ import { KpiDashboardComponent } from './kpi-dashboard/kpi-dashboard.component';
 import { ListaConsultasComponent } from './consultas/lista-consultas.component';
 import { DetalleConsultaComponent } from './consultas/detalle-consulta.component';
 import { ReporteDinamicoComponent } from './reportes/reporte-dinamico.component';
+import { MonitorIaComponent } from './monitor-ia/monitor-ia.component';
 import { NodosPorCarrilPipe } from '../shared/pipes/nodos-por-carril.pipe';
 
 @NgModule({
@@ -43,6 +44,7 @@ import { NodosPorCarrilPipe } from '../shared/pipes/nodos-por-carril.pipe';
     ListaConsultasComponent,
     DetalleConsultaComponent,
     ReporteDinamicoComponent,
+    MonitorIaComponent,
     NodosPorCarrilPipe,
   ],
   imports: [

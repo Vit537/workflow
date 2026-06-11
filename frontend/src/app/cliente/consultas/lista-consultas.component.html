@@ -1,8 +1,13 @@
 <div class="cabecera">
   <h1>Mis consultas</h1>
-  <button mat-raised-button color="primary" (click)="mostrarForm = !mostrarForm">
-    <mat-icon>add</mat-icon> Nueva consulta
-  </button>
+  <div class="cabecera-acciones">
+    <button mat-raised-button color="accent" routerLink="/cliente/asistente-ia">
+      <mat-icon>smart_toy</mat-icon> Consultar con IA
+    </button>
+    <button mat-raised-button color="primary" (click)="mostrarForm = !mostrarForm">
+      <mat-icon>add</mat-icon> Nueva consulta
+    </button>
+  </div>
 </div>
 
 <!-- Formulario nueva consulta -->

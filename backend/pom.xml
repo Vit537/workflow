@@ -94,6 +94,13 @@
       <version>5.2.5</version>
     </dependency>
 
+    <!-- OpenPDF — PDF export (licencia LGPL/MPL, sin restricciones AGPL de iText) -->
+    <dependency>
+      <groupId>com.github.librepdf</groupId>
+      <artifactId>openpdf</artifactId>
+      <version>1.3.30</version>
+    </dependency>
+
     <!-- AWS SDK v2 — almacenamiento S3 (activado con app.storage.type=s3) -->
     <dependency>
       <groupId>software.amazon.awssdk</groupId>

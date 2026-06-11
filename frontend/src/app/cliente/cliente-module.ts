@@ -23,6 +23,7 @@ import { ClienteRegistroComponent } from './auth/cliente-registro.component';
 import { ListaConsultasComponent } from './consultas/lista-consultas.component';
 import { DetalleConsultaComponent } from './consultas/detalle-consulta.component';
 import { NotificacionesComponent } from './notificaciones/notificaciones.component';
+import { AsistenteIaComponent } from './asistente-ia/asistente-ia.component';
 
 @NgModule({
   declarations: [
@@ -32,6 +33,7 @@ import { NotificacionesComponent } from './notificaciones/notificaciones.compone
     ListaConsultasComponent,
     DetalleConsultaComponent,
     NotificacionesComponent,
+    AsistenteIaComponent,
   ],
   imports: [
     CommonModule,

@@ -1,0 +1,17 @@
+# Entorno y caché (NUNCA al contenedor)
+venv/
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+.env
+.env.example
+
+# Datos y artefactos de entrenamiento (no se necesitan para servir)
+ml/data/
+ml/notebooks/
+ml/training/
+errores.md
+tests/
+
+# IMPORTANTE: SÍ se incluye ml/models/ (los .keras que el servicio carga en runtime).

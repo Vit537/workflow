@@ -1,0 +1,16 @@
+# Dependencias para ENTRENAMIENTO y SEED (offline). NO se necesitan para servir la API.
+# Instalar aparte:  pip install -r requirements-ml.txt
+
+# --- Seed / acceso a datos ---
+pymongo>=4.7
+bcrypt>=4.1
+
+# --- Entrenamiento (Fase 4) ---
+tensorflow>=2.16          # en Windows puede requerir tensorflow-cpu; en Colab viene preinstalado
+pandas>=2.2
+scikit-learn>=1.4
+numpy>=1.26
+matplotlib>=3.8
+
+# --- NLP (Fases 1 y 3) ---
+sentence-transformers>=2.7

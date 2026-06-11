@@ -23,6 +23,35 @@
         <mat-hint>Puedes describir cualquier reporte: trámites, políticas, usuarios, KPIs, etc.</mat-hint>
       </mat-form-field>
 
+      <!-- Ejemplos sugeridos -->
+      <div class="ejemplos-reporte">
+        <div class="ejemplos-titulo">
+          <mat-icon>insights</mat-icon> Ejemplos de KPI (indicadores)
+          <button mat-icon-button (click)="mostrarAyuda = !mostrarAyuda" matTooltip="¿Cómo pedir un KPI?">
+            <mat-icon>help_outline</mat-icon>
+          </button>
+        </div>
+        <div class="chips">
+          <button class="chip-ej kpi" *ngFor="let ej of ejemplosKPI"
+                  (click)="usarEjemplo(ej)" [disabled]="cargando || grabando">{{ ej }}</button>
+        </div>
+        <div class="ejemplos-titulo">Ejemplos de listado</div>
+        <div class="chips">
+          <button class="chip-ej" *ngFor="let ej of ejemplosListado"
+                  (click)="usarEjemplo(ej)" [disabled]="cargando || grabando">{{ ej }}</button>
+        </div>
+
+        <div class="ayuda-kpi" *ngIf="mostrarAyuda">
+          <p><strong>¿Cómo pedir un KPI?</strong> Un KPI es una <em>métrica agregada</em>: un promedio,
+          un total, un conteo, una tasa o un porcentaje (no una lista de registros).</p>
+          <ul>
+            <li>Usa palabras como «cantidad de», «promedio de», «total de», «tasa de», «cuántos».</li>
+            <li>Si pides un KPI, además de la tabla verás un recuadro azul con la <em>interpretación</em> del indicador.</li>
+            <li>Si pides un listado (ej. «lista de trámites»), saldrá como reporte normal sin interpretación.</li>
+          </ul>
+        </div>
+      </div>
+
       <!-- Transcripción del audio -->
       <div class="transcripcion" *ngIf="reporte?.promptTranscrito">
         <mat-icon>mic</mat-icon>
@@ -100,17 +129,30 @@
 
     <mat-card-content>
 
+      <!-- Interpretación del KPI (solo en reportes de indicadores) -->
+      <div class="kpi-descripcion" *ngIf="reporte.esKPI && reporte.descripcionKPI">
+        <mat-icon>insights</mat-icon>
+        <span>{{ reporte.descripcionKPI }}</span>
+      </div>
+
       <!-- Resumen -->
       <div class="resumen-row">
         <mat-chip-set>
+          <mat-chip *ngIf="reporte.esKPI" color="primary" highlighted><mat-icon>insights</mat-icon> KPI</mat-chip>
           <mat-chip><mat-icon>numbers</mat-icon> {{ reporte.total }} registros</mat-chip>
           <mat-chip><mat-icon>view_column</mat-icon> {{ reporte.columnas.length }} columnas</mat-chip>
         </mat-chip-set>
 
-        <button mat-raised-button color="accent" (click)="exportarExcel()" [disabled]="reporte.filas.length === 0">
-          <mat-icon>download</mat-icon>
-          Exportar Excel
-        </button>
+        <span class="acciones-export">
+          <button mat-raised-button color="accent" (click)="exportarExcel()" [disabled]="reporte.filas.length === 0">
+            <mat-icon>download</mat-icon>
+            Exportar Excel
+          </button>
+          <button mat-raised-button color="warn" (click)="exportarPdf()" [disabled]="reporte.filas.length === 0">
+            <mat-icon>picture_as_pdf</mat-icon>
+            Exportar PDF
+          </button>
+        </span>
       </div>
 
       <!-- Sin datos -->

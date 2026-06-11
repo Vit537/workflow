@@ -11,6 +11,8 @@ public record ResultadoReporte(
         String descripcion,
         List<String> columnas,
         List<Map<String, Object>> filas,
+        boolean esKPI,
+        String descripcionKPI,
         String promptTranscrito,
         int total
 ) {}

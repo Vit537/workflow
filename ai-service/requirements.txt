@@ -5,5 +5,10 @@ langchain-core>=0.2.0
 langchain-groq>=0.1.3
 groq>=0.9.0
 pydantic>=2.7.0
+pydantic-settings>=2.2.0
 python-dotenv>=1.0.1
 python-multipart>=0.0.9
+
+# Motor de riesgo TensorFlow + entrenamiento desde la UI (requiere Mongo)
+tensorflow-cpu>=2.16
+pymongo>=4.7

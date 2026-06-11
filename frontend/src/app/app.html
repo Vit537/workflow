@@ -27,6 +27,10 @@
       *ngIf="usuario.rol === 'ADMIN'">
       <mat-icon>assessment</mat-icon> Reportes
     </a>
+    <a mat-button routerLink="/workflow/monitor-ia" routerLinkActive="link-activo"
+      *ngIf="usuario.rol === 'ADMIN'">
+      <mat-icon>psychology</mat-icon> Monitor IA
+    </a>
     <a mat-button routerLink="/workflow/consultas" routerLinkActive="link-activo"
       *ngIf="usuario.rol === 'ADMIN' || usuario.rol === 'ASESOR'">
       <mat-icon>support_agent</mat-icon> Consultas

@@ -13,10 +13,17 @@ frontend/.angular/
 
 # Python
 ai-service/__pycache__/
+ai-service/**/__pycache__/
+**/__pycache__/
 ai-service/.venv/
 ai-service/venv/
 ai-service/*.pyc
 ai-service/.env
+
+# Datos generados / exports del ai-service (regenerables con el seed)
+ai-service/ml/data/*.jsonl
+ai-service/ml/data/muestra_tramites.json
+ai-service/ml/data/*.csv
 
 # IDE
 .idea/
@@ -44,6 +51,7 @@ documentacion/
 documentacion2/
 documentacion3/
 documentacion4/
+documentacion5/
 
 # Archivos privados del proyecto
 /casos_de_uso_core.md
@@ -53,3 +61,8 @@ documentacion4/
 /errores-externos.md
 /prompt.md
 /prompt2.md
+/problemas.md
+/logs.md
+/contexto1.md
+/contexto2.md
+/arreglo-de-icono-cargar.md

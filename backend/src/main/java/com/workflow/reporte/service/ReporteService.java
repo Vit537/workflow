@@ -125,6 +125,79 @@ public class ReporteService {
         }
     }
 
+    // ── Exportar a PDF (OpenPDF) ───────────────────────────────────────────────
+
+    public ByteArrayResource exportarPdf(ResultadoReporte reporte) {
+        // Nombres totalmente calificados: com.lowagie.text.Font/Document chocan con POI/BSON.
+        try {
+            ByteArrayOutputStream out = new ByteArrayOutputStream();
+            com.lowagie.text.Document doc =
+                    new com.lowagie.text.Document(com.lowagie.text.PageSize.A4.rotate(), 36, 36, 36, 36);
+            com.lowagie.text.pdf.PdfWriter.getInstance(doc, out);
+            doc.open();
+
+            // Título
+            com.lowagie.text.Font fTitulo =
+                    new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 16, com.lowagie.text.Font.BOLD);
+            com.lowagie.text.Paragraph pTitulo =
+                    new com.lowagie.text.Paragraph(reporte.titulo() != null ? reporte.titulo() : "Reporte", fTitulo);
+            pTitulo.setSpacingAfter(8f);
+            doc.add(pTitulo);
+
+            // Descripción
+            if (reporte.descripcion() != null && !reporte.descripcion().isBlank()) {
+                com.lowagie.text.Paragraph pDesc = new com.lowagie.text.Paragraph(
+                        reporte.descripcion(),
+                        new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 10));
+                pDesc.setSpacingAfter(8f);
+                doc.add(pDesc);
+            }
+
+            // Interpretación del KPI (solo si aplica)
+            if (reporte.esKPI() && reporte.descripcionKPI() != null && !reporte.descripcionKPI().isBlank()) {
+                com.lowagie.text.Font fKpi = new com.lowagie.text.Font(
+                        com.lowagie.text.Font.HELVETICA, 10, com.lowagie.text.Font.ITALIC, java.awt.Color.DARK_GRAY);
+                com.lowagie.text.Paragraph pKpi =
+                        new com.lowagie.text.Paragraph("Interpretación: " + reporte.descripcionKPI(), fKpi);
+                pKpi.setSpacingAfter(12f);
+                doc.add(pKpi);
+            }
+
+            // Tabla de datos
+            List<String> columnas = reporte.columnas();
+            if (columnas != null && !columnas.isEmpty()) {
+                com.lowagie.text.pdf.PdfPTable tabla = new com.lowagie.text.pdf.PdfPTable(columnas.size());
+                tabla.setWidthPercentage(100f);
+
+                com.lowagie.text.Font fHead = new com.lowagie.text.Font(
+                        com.lowagie.text.Font.HELVETICA, 10, com.lowagie.text.Font.BOLD, java.awt.Color.WHITE);
+                for (String col : columnas) {
+                    com.lowagie.text.pdf.PdfPCell celda =
+                            new com.lowagie.text.pdf.PdfPCell(new com.lowagie.text.Phrase(col, fHead));
+                    celda.setBackgroundColor(new java.awt.Color(79, 129, 189));
+                    celda.setPadding(5f);
+                    tabla.addCell(celda);
+                }
+
+                com.lowagie.text.Font fCelda = new com.lowagie.text.Font(com.lowagie.text.Font.HELVETICA, 9);
+                for (Map<String, Object> fila : reporte.filas()) {
+                    for (String col : columnas) {
+                        Object val = fila.get(col);
+                        tabla.addCell(new com.lowagie.text.Phrase(val == null ? "" : val.toString(), fCelda));
+                    }
+                }
+                doc.add(tabla);
+            } else {
+                doc.add(new com.lowagie.text.Paragraph("Sin datos."));
+            }
+
+            doc.close();
+            return new ByteArrayResource(out.toByteArray());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error al generar PDF: " + e.getMessage());
+        }
+    }
+
     // ── Privados ──────────────────────────────────────────────────────────────
 
     private RespuestaIaReporte llamarIaTexto(String prompt) {
@@ -234,6 +307,8 @@ public class ReporteService {
                 iaResp.descripcion() != null ? iaResp.descripcion() : "",
                 columnas,
                 filas,
+                Boolean.TRUE.equals(iaResp.esKPI()),
+                iaResp.descripcionKPI(),
                 iaResp.promptTranscrito(),
                 filas.size()
         );

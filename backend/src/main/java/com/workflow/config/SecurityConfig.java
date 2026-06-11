@@ -53,6 +53,9 @@ public class SecurityConfig {
             // se protegen con el token corto ?oo= y (en el callback) el JWT de OnlyOffice.
             .requestMatchers("/api/documentos/*/onlyoffice/contenido").permitAll()
             .requestMatchers("/api/documentos/*/onlyoffice/callback").permitAll()
+            // Reentrenamiento de modelos TensorFlow: solo administradores.
+            .requestMatchers("/api/riesgo/entrenar/**").hasRole("ADMIN")
+            .requestMatchers("/api/riesgo/entrenar").hasRole("ADMIN")
             // El cliente autenticado (CLIENTE) crea/consulta sus consultas y sube archivos.
             // Registro/login son públicos vía /api/auth/**.
             .anyRequest().authenticated())

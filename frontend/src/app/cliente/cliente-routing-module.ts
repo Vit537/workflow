@@ -7,6 +7,7 @@ import { ClienteRegistroComponent } from './auth/cliente-registro.component';
 import { ListaConsultasComponent } from './consultas/lista-consultas.component';
 import { DetalleConsultaComponent } from './consultas/detalle-consulta.component';
 import { NotificacionesComponent } from './notificaciones/notificaciones.component';
+import { AsistenteIaComponent } from './asistente-ia/asistente-ia.component';
 
 const routes: Routes = [
   { path: 'login', component: ClienteLoginComponent },
@@ -18,6 +19,7 @@ const routes: Routes = [
     children: [
       { path: 'consultas', component: ListaConsultasComponent },
       { path: 'consultas/:id', component: DetalleConsultaComponent },
+      { path: 'asistente-ia', component: AsistenteIaComponent },
       { path: 'notificaciones', component: NotificacionesComponent },
       { path: '', redirectTo: 'consultas', pathMatch: 'full' },
     ],

@@ -1,0 +1,120 @@
+<div class="monitor-container">
+
+  <div class="monitor-header">
+    <h2><mat-icon>psychology</mat-icon> Monitor IA — Riesgo y Predicción (TensorFlow)</h2>
+    <div class="header-acciones">
+      <span class="fuente" *ngIf="panel">
+        Fuente: <strong>{{ fuente === 'modelo' ? 'Modelo TensorFlow' : 'Heurística' }}</strong>
+      </span>
+      <button mat-stroked-button color="primary" (click)="cargar()" [disabled]="cargando">
+        <mat-icon>refresh</mat-icon> Actualizar
+      </button>
+    </div>
+  </div>
+
+  <!-- Entrenamiento de modelos -->
+  <mat-card class="entreno-card">
+    <div class="entreno-main">
+      <div>
+        <h3><mat-icon>model_training</mat-icon> Modelos TensorFlow</h3>
+        <p class="entreno-info" *ngIf="entrenamiento">
+          <ng-container [ngSwitch]="entrenamiento.estado">
+            <span *ngSwitchCase="'OK'">
+              Último entrenamiento OK
+              <span *ngIf="entrenamiento.metricas">— precisión demora
+                {{ (entrenamiento.metricas.accuracyDemora || 0) * 100 | number:'1.0-0' }}%,
+                error duración {{ entrenamiento.metricas.maeDuracionHoras }} h,
+                {{ entrenamiento.metricas.muestras }} muestras ({{ entrenamiento.tramites }} trámites)</span>
+            </span>
+            <span *ngSwitchCase="'ENTRENANDO'">Entrenando modelos… esto puede tardar un momento.</span>
+            <span *ngSwitchCase="'ERROR'" class="txt-error">Error: {{ entrenamiento.mensaje }}</span>
+            <span *ngSwitchDefault>Aún no se han reentrenado desde la app.</span>
+          </ng-container>
+        </p>
+      </div>
+      <button mat-raised-button color="primary" (click)="entrenarModelos()" [disabled]="entrenando">
+        <mat-spinner *ngIf="entrenando" diameter="18" class="spinner-btn"></mat-spinner>
+        <mat-icon *ngIf="!entrenando">model_training</mat-icon>
+        {{ entrenando ? 'Entrenando…' : 'Reentrenar modelos' }}
+      </button>
+    </div>
+  </mat-card>
+
+  <div *ngIf="cargando" class="centrado"><mat-spinner diameter="38"></mat-spinner></div>
+
+  <div *ngIf="error" class="error-box">
+    <mat-icon>error_outline</mat-icon> {{ error }}
+  </div>
+
+  <ng-container *ngIf="panel && !cargando">
+
+    <!-- Nivel de atención -->
+    <mat-card class="atencion-card">
+      <div class="atencion-main">
+        <span class="nivel-chip" [ngClass]="claseNivel(panel.atencion.nivel)">
+          Atención {{ panel.atencion.nivel }}
+        </span>
+        <span class="atencion-detalle">
+          {{ panel.atencion.tramitesActivos }} trámites activos / {{ panel.atencion.asesoresActivos }} asesores
+          (ratio {{ panel.atencion.ratio }})
+        </span>
+      </div>
+      <div class="sugerir-ia" *ngIf="panel.atencion.sugerirIA">
+        <mat-icon>smart_toy</mat-icon> Demanda elevada: conviene ofrecer atención por IA al cliente.
+      </div>
+    </mat-card>
+
+    <!-- Anomalías -->
+    <mat-card class="anomalias-card" *ngIf="anomalias.length > 0">
+      <h3><mat-icon>warning</mat-icon> Anomalías detectadas ({{ anomalias.length }})</h3>
+      <ul>
+        <li *ngFor="let a of anomalias">
+          <strong>{{ a.nombrePolitica }}</strong> — {{ a.etiquetaNodo }}
+          <small>({{ a.nombreCliente }}, asesor {{ a.asignadoA }})</small>
+        </li>
+      </ul>
+    </mat-card>
+
+    <!-- Cola priorizada -->
+    <mat-card class="cola-card">
+      <h3><mat-icon>low_priority</mat-icon> Cola priorizada de trámites activos</h3>
+
+      <div *ngIf="panel.items.length === 0" class="vacio">
+        <mat-icon>inbox</mat-icon> No hay trámites activos para evaluar.
+      </div>
+
+      <table class="tabla-riesgo" *ngIf="panel.items.length > 0">
+        <thead>
+          <tr>
+            <th>Prioridad</th>
+            <th>Política / Paso</th>
+            <th>Cliente</th>
+            <th>Asesor</th>
+            <th>Riesgo de demora</th>
+            <th>Anomalía</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let it of panel.items" [class.fila-anomala]="it.esAnomalia">
+            <td>
+              <span class="badge" [ngClass]="claseNivel(it.prioridad)">{{ it.prioridad }}</span>
+              <small class="score">{{ it.scorePrioridad }}</small>
+            </td>
+            <td><strong>{{ it.nombrePolitica }}</strong><br /><small>{{ it.etiquetaNodo }}</small></td>
+            <td>{{ it.nombreCliente }}</td>
+            <td>{{ it.asignadoA }}</td>
+            <td>
+              <span class="badge" [ngClass]="claseNivel(it.riesgoDemora)">{{ it.riesgoDemora }}</span>
+              <small class="score">{{ (it.probabilidadDemora * 100) | number:'1.0-0' }}%</small>
+            </td>
+            <td class="centro">
+              <mat-icon *ngIf="it.esAnomalia" class="icono-anomalia" matTooltip="Duración anómala">warning</mat-icon>
+              <span *ngIf="!it.esAnomalia">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </mat-card>
+
+  </ng-container>
+</div>

@@ -115,6 +115,9 @@ export class GrafoIaService {
           titulo: n.formulario.titulo,
           instrucciones: n.formulario.instrucciones ?? '',
           requisitos: n.formulario.requisitos ?? [],
+          requiereDocumentos: (n.formulario as any).requiereDocumentos ?? false,
+          tiposPermitidos: (n.formulario as any).tiposPermitidos ?? [],
+          maxArchivos: (n.formulario as any).maxArchivos ?? undefined,
           campos: (n.formulario.campos ?? []).map(c => ({
             nombre: c.nombre,
             etiqueta: c.etiqueta,
@@ -185,6 +188,9 @@ export class GrafoIaService {
               titulo: accion.datos['formulario'].titulo,
               instrucciones: accion.datos['formulario'].instrucciones ?? '',
               requisitos: accion.datos['formulario'].requisitos ?? [],
+              requiereDocumentos: accion.datos['formulario'].requiereDocumentos ?? false,
+              tiposPermitidos: accion.datos['formulario'].tiposPermitidos ?? [],
+              maxArchivos: accion.datos['formulario'].maxArchivos ?? undefined,
               campos: (accion.datos['formulario'].campos ?? []).map((c: any) => ({
                 nombre: c.nombre,
                 etiqueta: c.etiqueta,

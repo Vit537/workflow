@@ -14,5 +14,7 @@ public record RespuestaIaReporte(
         String coleccion,
         List<Map<String, Object>> pipeline,
         List<String> columnas,
+        Boolean esKPI,
+        String descripcionKPI,
         String promptTranscrito
 ) {}

@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import 'login_screen.dart';
 import 'mis_consultas_screen.dart';
 import 'notificaciones_screen.dart';
+import 'asistente_ia_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -35,6 +36,15 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: Text(_index == 0 ? 'Mis consultas' : 'Notificaciones'),
         actions: [
+          if (_index == 0)
+            IconButton(
+              icon: const Icon(Icons.smart_toy),
+              tooltip: 'Consultar con IA',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AsistenteIaScreen()),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: Center(

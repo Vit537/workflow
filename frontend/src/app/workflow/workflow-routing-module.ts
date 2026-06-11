@@ -8,6 +8,7 @@ import { KpiDashboardComponent } from './kpi-dashboard/kpi-dashboard.component';
 import { ListaConsultasComponent } from './consultas/lista-consultas.component';
 import { DetalleConsultaComponent } from './consultas/detalle-consulta.component';
 import { ReporteDinamicoComponent } from './reportes/reporte-dinamico.component';
+import { MonitorIaComponent } from './monitor-ia/monitor-ia.component';
 import { AuthGuard } from '../shared/guards/auth.guard';
 
 const routes: Routes = [
@@ -49,6 +50,11 @@ const routes: Routes = [
   {
     path: 'reportes',
     component: ReporteDinamicoComponent,
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'monitor-ia',
+    component: MonitorIaComponent,
     canActivate: [AuthGuard],
   },
 ];

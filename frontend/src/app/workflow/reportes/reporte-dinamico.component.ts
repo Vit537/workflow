@@ -16,6 +16,21 @@ export class ReporteDinamicoComponent implements OnDestroy {
   error = '';
   reporte: ResultadoReporte | null = null;
 
+  // Ejemplos de KPI (métricas agregadas → muestran texto de interpretación)
+  ejemplosKPI: string[] = [
+    'Cantidad de trámites por estado',
+    'Tiempo promedio en horas para completar cada trámite',
+    'Tasa de trámites completados vs cancelados',
+    'Top 5 asesores por cantidad de trámites atendidos',
+    'Promedio de duración por paso o actividad',
+  ];
+  // Ejemplos de reporte normal (listados)
+  ejemplosListado: string[] = [
+    'Lista de trámites activos',
+    'Usuarios asesores activos',
+  ];
+  mostrarAyuda = false;
+
   // ── Audio ──
   grabando = false;
   private mediaRecorder: MediaRecorder | null = null;
@@ -27,6 +42,13 @@ export class ReporteDinamicoComponent implements OnDestroy {
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
   ) {}
+
+  // ── Ejemplos ──────────────────────────────────────────────────────────────
+
+  usarEjemplo(texto: string): void {
+    this.prompt = texto;
+    this.generarDesdeTexto();
+  }
 
   // ── Generar desde texto ───────────────────────────────────────────────────
 
@@ -87,16 +109,26 @@ export class ReporteDinamicoComponent implements OnDestroy {
   exportarExcel(): void {
     if (!this.reporte) return;
     this.reporteService.exportarExcel(this.reporte).subscribe({
-      next: (blob) => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `reporte_${Date.now()}.xlsx`;
-        a.click();
-        URL.revokeObjectURL(url);
-      },
+      next: (blob) => this.descargar(blob, `reporte_${Date.now()}.xlsx`),
       error: () => { this.error = 'Error al exportar el archivo Excel.'; },
     });
+  }
+
+  exportarPdf(): void {
+    if (!this.reporte) return;
+    this.reporteService.exportarPdf(this.reporte).subscribe({
+      next: (blob) => this.descargar(blob, `reporte_${Date.now()}.pdf`),
+      error: () => { this.error = 'Error al exportar el archivo PDF.'; },
+    });
+  }
+
+  private descargar(blob: Blob, nombre: string): void {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────

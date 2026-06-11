@@ -1,1 +1,0 @@
-para mover el diagrama debemos presionar espacio y click derecho asi se movera el diagrama 

@@ -1,0 +1,65 @@
+<div class="cabecera">
+  <h1><mat-icon>smart_toy</mat-icon> Asistente IA</h1>
+  <button mat-button color="primary" routerLink="/cliente/consultas">
+    <mat-icon>arrow_back</mat-icon> Mis consultas
+  </button>
+</div>
+
+<mat-card class="chat">
+  <div class="mensajes">
+    <div *ngFor="let m of mensajes" class="burbuja" [ngClass]="m.role">
+      <div class="texto">{{ m.texto }}</div>
+
+      <!-- Recomendación de política -->
+      <div class="recomendacion" *ngIf="m.recomendacion">
+        <mat-icon>recommend</mat-icon>
+        <span>Trámite sugerido: <strong>{{ m.recomendacion.nombre }}</strong>
+          <small class="conf" [ngClass]="m.recomendacion.confianza.toLowerCase()">{{ m.recomendacion.confianza }}</small>
+        </span>
+      </div>
+
+      <!-- Sugerencia de asesor -->
+      <div class="derivar" *ngIf="m.sugiereAsesor">
+        <button mat-raised-button color="accent" (click)="derivarAsesor()" [disabled]="derivando">
+          <mat-icon>support_agent</mat-icon>
+          Hablar con un asesor
+        </button>
+      </div>
+    </div>
+
+    <!-- Ejemplos sugeridos (solo al inicio) -->
+    <div class="ejemplos" *ngIf="mensajes.length <= 1 && !cargando">
+      <button class="chip-ejemplo" *ngFor="let ej of ejemplos" (click)="usarEjemplo(ej)">
+        {{ ej }}
+      </button>
+    </div>
+
+    <div *ngIf="cargando" class="burbuja assistant escribiendo">
+      <mat-spinner diameter="20"></mat-spinner> <span>Escribiendo…</span>
+    </div>
+  </div>
+
+  <div class="grabando-aviso" *ngIf="grabando">
+    <span class="dot"></span> Grabando… habla y luego presiona el botón rojo para enviar.
+  </div>
+
+  <div class="entrada">
+    <mat-form-field appearance="outline" class="full">
+      <mat-label>Escribe tu consulta…</mat-label>
+      <input matInput [(ngModel)]="entrada" (keyup.enter)="enviar()" [disabled]="cargando || grabando" />
+    </mat-form-field>
+
+    <!-- Voz: grabar / detener -->
+    <button mat-fab color="accent" *ngIf="!grabando" (click)="iniciarGrabacion()"
+            [disabled]="cargando" aria-label="Hablar" matTooltip="Consultar por voz">
+      <mat-icon>mic</mat-icon>
+    </button>
+    <button mat-fab color="warn" *ngIf="grabando" (click)="detenerGrabacion()" aria-label="Detener">
+      <mat-icon>stop</mat-icon>
+    </button>
+
+    <button mat-fab color="primary" (click)="enviar()" [disabled]="cargando || grabando || !entrada.trim()" aria-label="Enviar">
+      <mat-icon>send</mat-icon>
+    </button>
+  </div>
+</mat-card>
